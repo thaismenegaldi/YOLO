@@ -1,4 +1,5 @@
 import argparse
+import datetime
 
 import torch.distributed as dist
 import torch.optim as optim
@@ -17,10 +18,14 @@ except:
     print('Apex recommended for faster mixed precision training: https://github.com/NVIDIA/apex')
     mixed_precision = False  # not installed
 
-wdir = 'weights' + os.sep  # weights dir
+wdir = 'weights' + os.sep + 'DFire' + '_' + str(datetime.datetime.now().strftime("%b-%d-%Y_%H-%M-%S")) + os.sep
 last = wdir + 'last.pt'
 best = wdir + 'best.pt'
-results_file = 'results.txt'
+results_file = wdir + 'results.txt'
+
+# Create a new directory
+print('Directory:', wdir)
+os.mkdir(wdir)
 
 # Hyperparameters
 hyp = {'giou': 3.54,  # giou loss gain
@@ -82,6 +87,10 @@ def train(hyp):
     test_path = data_dict['valid']
     nc = 1 if opt.single_cls else int(data_dict['classes'])  # number of classes
     hyp['cls'] *= nc / 80  # update coco-tuned hyp['cls'] to current dataset
+    
+    print('Cls loss gain:', hyp['cls'])
+    print('GIoU loss gain:', hyp['giou'])
+    print('Obj loss gain:', hyp['obj'])
 
     # Remove previous results
     for f in glob.glob('*_batch*.jpg') + glob.glob(results_file):
@@ -100,11 +109,13 @@ def train(hyp):
         else:
             pg0 += [v]  # all else
 
-    if opt.adam:
+    if opt.optimizer == 'adam':
         # hyp['lr0'] *= 0.1  # reduce lr (i.e. SGD=5E-3, Adam=5E-4)
+        print('Optimizer: Adaptive Moment Estimation (Adam)')
         optimizer = optim.Adam(pg0, lr=hyp['lr0'])
         # optimizer = AdaBound(pg0, lr=hyp['lr0'], final_lr=0.1)
     else:
+        print('Optimizer: Stochastic Gradient Descent (SGD)')
         optimizer = optim.SGD(pg0, lr=hyp['lr0'], momentum=hyp['momentum'], nesterov=True)
     optimizer.add_param_group({'params': pg1, 'weight_decay': hyp['weight_decay']})  # add pg1 with weight_decay
     optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
@@ -148,10 +159,23 @@ def train(hyp):
     if mixed_precision:
         model, optimizer = amp.initialize(model, optimizer, opt_level='O1', verbosity=0)
 
-    # Scheduler https://arxiv.org/pdf/1812.01187.pdf
-    lf = lambda x: (((1 + math.cos(x * math.pi / epochs)) / 2) ** 1.0) * 0.95 + 0.05  # cosine
-    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+    # Cosine scheduler https://arxiv.org/pdf/1812.01187.pdf
+
+    if opt.scheduler == 'cos':
+        print('Scheduler: Cosine')
+        lf = lambda x: (((1 + math.cos(x * math.pi / epochs)) / 2) ** 1.0) * 0.95 + 0.05
+        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+    elif opt.scheduler == 'invexp':
+        print('Scheduler: Inverse Exponential')
+        lf = lambda x: 1 - 10 ** (hyp['lrf'] * (1 - x / epochs))
+        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+    elif opt.scheduler == 'steps':
+        print('Scheduler: Multisteps')
+        print('Steps:', round(0.8*epochs), round(0.9*epochs))
+        scheduler = lr_scheduler.MultiStepLR(optimizer, [round(epochs * x) for x in [0.8, 0.9]], 0.1)
+
     scheduler.last_epoch = start_epoch - 1  # see link below
+    
     # https://discuss.pytorch.org/t/a-problem-occured-when-resuming-an-optimizer/28822
 
     # Plot lr schedule
@@ -391,7 +415,8 @@ if __name__ == '__main__':
     parser.add_argument('--weights', type=str, default='weights/yolov3-spp-ultralytics.pt', help='initial weights path')
     parser.add_argument('--name', default='', help='renames results.txt to results_name.txt if supplied')
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1 or cpu)')
-    parser.add_argument('--adam', action='store_true', help='use adam optimizer')
+    parser.add_argument('--optimizer', type = str, default = 'sgd', help='optimizer (sgd or adam)')
+    parser.add_argument('--scheduler', type = str, default = 'cos', help='scheduler (steps, cos, invexp)')
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
     opt = parser.parse_args()
     opt.weights = last if opt.resume else opt.weights
