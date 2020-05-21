@@ -86,8 +86,12 @@ def train(hyp):
     train_path = data_dict['train']
     test_path = data_dict['valid']
     nc = 1 if opt.single_cls else int(data_dict['classes'])  # number of classes
-    hyp['cls'] *= nc / 80  # update coco-tuned hyp['cls'] to current dataset
-    
+
+    hyp['lr0'] = opt.lr0
+    hyp['cls'] = opt.cls * nc / 80  # update coco-tuned hyp['cls'] to current dataset
+    hyp['obj'] = opt.obj
+    hyp['giou'] = opt.giou
+
     print('Cls loss gain:', hyp['cls'])
     print('GIoU loss gain:', hyp['giou'])
     print('Obj loss gain:', hyp['obj'])
@@ -121,6 +125,8 @@ def train(hyp):
     optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
     print('Optimizer groups: %g .bias, %g Conv2d.weight, %g other' % (len(pg2), len(pg1), len(pg0)))
     del pg0, pg1, pg2
+
+    print(optimizer)
 
     start_epoch = 0
     best_fitness = 0.0
@@ -418,6 +424,10 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1 or cpu)')
     parser.add_argument('--optimizer', type = str, default = 'sgd', help='optimizer (sgd or adam)')
     parser.add_argument('--scheduler', type = str, default = 'cos', help='scheduler (steps, cos, invexp)')
+    parser.add_argument('--lr0', type = float, default = 0.001, help = 'initial learning rate')
+    parser.add_argument('--cls', type = float, default = 37.4, help = 'cls loss gain')
+    parser.add_argument('--giou', type = float, default = 3.54, help = 'giou loss gain')
+    parser.add_argument('--obj', type = float, default = 64.3, help = 'obj loss gain')
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
     opt = parser.parse_args()
     opt.weights = last if opt.resume else opt.weights
