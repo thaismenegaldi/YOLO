@@ -429,9 +429,12 @@ if __name__ == '__main__':
     parser.add_argument('--giou', type = float, default = 3.54, help = 'giou loss gain')
     parser.add_argument('--obj', type = float, default = 64.3, help = 'obj loss gain')
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
+
     opt = parser.parse_args()
     opt.weights = last if opt.resume else opt.weights
+
     check_git_status()
+    
     opt.cfg = list(glob.iglob('./**/' + opt.cfg, recursive=True))[0]  # find file
     # opt.data = list(glob.iglob('./**/' + opt.data, recursive=True))[0]  # find file
     print(opt)
