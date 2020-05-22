@@ -15,6 +15,7 @@ def test(cfg,
          imgsz=416,
          conf_thres=0.001,
          iou_thres=0.6,  # for nms
+         pr_score=0.1,
          save_json=False,
          single_cls=False,
          augment=False,
@@ -173,7 +174,7 @@ def test(cfg,
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats):
-        p, r, ap, f1, ap_class = ap_per_class(*stats)
+        p, r, ap, f1, ap_class = ap_per_class(*stats, pr_score = pr_score)
         if niou > 1:
             p, r, ap, f1 = p[:, 0], r[:, 0], ap.mean(1), ap[:, 0]  # [P, R, AP@0.5:0.95, AP@0.5]
         mp, mr, map, mf1 = p.mean(), r.mean(), ap.mean(), f1.mean()
@@ -236,6 +237,7 @@ if __name__ == '__main__':
     parser.add_argument('--img-size', type=int, default=512, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.6, help='IOU threshold for NMS')
+    parser.add_argument('--pr-score', type=float, default=0.1, help='confidence score')
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
     parser.add_argument('--task', default='test', help="'test', 'study', 'benchmark'")
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1) or cpu')
@@ -256,6 +258,7 @@ if __name__ == '__main__':
              opt.img_size,
              opt.conf_thres,
              opt.iou_thres,
+             opt.pr_score,
              opt.save_json,
              opt.single_cls,
              opt.augment)
@@ -268,3 +271,80 @@ if __name__ == '__main__':
                 r = test(opt.cfg, opt.data, opt.weights, opt.batch_size, i, opt.conf_thres, j, opt.save_json)[0]
                 y.append(r + (time.time() - t,))
         np.savetxt('benchmark.txt', y, fmt='%10.4g')  # y = np.loadtxt('study.txt')
+
+    elif opt.task == 'study_iou': 
+        y = []
+        x = np.arange(0, 1.05, 0.05)
+        for i in x:
+            t = time.time()
+            r = test(opt.cfg, opt.data, opt.weights, opt.batch_size, opt.img_size, opt.conf_thres, i, opt.pr_score, opt.save_json)[0]
+            y.append(r + (time.time() - t,))
+        np.savetxt('study_iou.txt', y, fmt='%10.4g')
+
+        # Plot
+        fig, ax = plt.subplots(3, 1, figsize=(6, 6))
+        y = np.stack(y, 0)
+        ax[0].plot(x, y[:, 2], marker='.', label='mAP@0.5')
+        ax[0].set_ylabel('mAP')
+        ax[1].plot(x, y[:, 3], marker='.', label='mAP@0.5:0.95')
+        ax[1].set_ylabel('mAP')
+        ax[2].plot(x, y[:, -1], marker='.', label='time')
+        ax[2].set_ylabel('time (s)')
+        for i in range(3):
+            ax[i].legend()
+            ax[i].set_xlabel('iou_thr')
+            ax[i].grid()
+        fig.tight_layout()
+        plt.savefig('study_iou.jpg', dpi=500)
+
+    elif opt.task == 'study_conf':
+
+        y = []
+        x = np.arange(0, 0.01, 0.001)
+        for i in x:
+            t = time.time()
+            r = test(opt.cfg, opt.data, opt.weights, opt.batch_size, opt.img_size, i, opt.iou_thres, opt.pr_score, opt.save_json)[0]
+            y.append(r + (time.time() - t,))
+        np.savetxt('study_conf.txt', y, fmt='%10.4g')
+
+
+        # Plot
+        fig, ax = plt.subplots(2, 1, figsize=(6, 6))
+        y = np.stack(y, 0)
+        ax[0].plot(x, y[:, 2], marker='.', label='mAP@0.5')
+        ax[0].set_ylabel('mAP')
+        ax[1].plot(x, y[:, -1], marker='.', label='time')
+        ax[1].set_ylabel('time (s)')
+        for i in range(2):
+            ax[i].legend()
+            ax[i].set_xlabel('conf_thr')
+            ax[i].grid()
+        fig.tight_layout()
+        plt.savefig('study_conf.jpg', dpi=500)
+
+    elif opt.task == 'study_prscore':
+
+        y = []
+        x = np.arange(0, 1.1, 0.1)
+        for i in x:
+            t = time.time()
+            # (mp, mr, map, mf1, *(loss.cpu() / len(dataloader)).tolist()), maps
+            r = test(opt.cfg, opt.data, opt.weights, opt.batch_size, opt.img_size, opt.conf_thres, opt.iou_thres, i, opt.save_json)[0]
+            y.append(r + (time.time() - t,))
+        np.savetxt('study_prscore.txt', y, fmt='%10.4g')
+
+        # Plot
+        fig, ax = plt.subplots(3, 1, figsize=(6, 6))
+        y = np.stack(y, 0)
+        ax[0].plot(x, y[:, 0], marker='.', label='precision')
+        ax[0].set_ylabel('precision')
+        ax[1].plot(x, y[:, 1], marker='.', label='recall')
+        ax[1].set_ylabel('recall')
+        ax[2].plot(x, y[:, -1], marker='.', label='time')
+        ax[2].set_ylabel('time (s)')
+        for i in range(3):
+            ax[i].legend()
+            ax[i].set_xlabel('pr_score')
+            ax[i].grid()
+        fig.tight_layout()
+        plt.savefig('study_prscore.jpg', dpi=500)
