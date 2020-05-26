@@ -28,10 +28,10 @@ print('Directory:', wdir)
 os.mkdir(wdir)
 
 # Hyperparameters
-hyp = {'giou': 0.935,  # giou loss gain
+hyp = {'giou': 3.54,  # giou loss gain
        'cls': 37.4,  # cls loss gain
        'cls_pw': 1.0,  # cls BCELoss positive_weight
-       'obj': 50.0,  # obj loss gain (*=img_size/320 if img_size != 320)
+       'obj': 64.3,  # obj loss gain (*=img_size/320 if img_size != 320)
        'obj_pw': 1.0,  # obj BCELoss positive_weight
        'iou_t': 0.20,  # iou training threshold
        'lr0': 0.01,  # initial learning rate (SGD=5E-3, Adam=5E-4)
@@ -365,7 +365,7 @@ def train(hyp):
         # Update best mAP
         fi = fitness(np.array(results).reshape(1, -1))  # fitness_i = weighted combination of [P, R, mAP, F1]
         if fi > best_fitness:
-            print('Improvement:', np.round(best_fitness.numpy()[0], decimals = 4), 'to', np.round(fi.numpy()[0], decimals = 4))
+            print('Improvement:', np.round(best_fitness, decimals = 4), 'to', np.round(fi.numpy, decimals = 4))
             best_fitness = fi
 
         # Save model
