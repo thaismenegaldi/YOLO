@@ -365,7 +365,7 @@ def train(hyp):
         # Update best mAP
         fi = fitness(np.array(results).reshape(1, -1))  # fitness_i = weighted combination of [P, R, mAP, F1]
         if fi > best_fitness:
-            print('Improvement:', np.round(best_fitness, decimals = 4), 'to', np.round(fi.numpy, decimals = 4))
+            print('Improvement:', np.round(best_fitness, decimals = 4), 'to', np.round(fi, decimals = 4))
             best_fitness = fi
 
         # Save model
