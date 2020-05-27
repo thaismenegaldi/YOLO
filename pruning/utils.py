@@ -1,6 +1,28 @@
 import torch
 import numpy as np
 
+def sparsity(model, describe = False):
+
+    """ Calculates the sparsity of the convolutional layers, that is, the number of null filters in each layer and in the entire model. """
+
+    sparsities = list()
+    idx = 0
+
+    for module in model.module_list:
+        try:
+            for layer in module:
+                idx += 1
+                if str(layer).split('(')[0] == 'Conv2d':
+                    sparsity = 100. * float(torch.sum(layer.weight == 0)) / float(layer.weight.nelement())
+                    sparsities.append(sparsity)
+                    if describe is True:
+                        print('Sparsity Conv2d-%s: %.2f%%' % (str(idx), sparsity))
+        except:
+            idx += 1
+            pass
+    
+    print('Global sparsity: %.2f%%' % np.mean(np.array(sparsities)))
+
 def summary(model, input_shape = (3, 416, 416), name = 'YOLO'):
 
     """ Prints a summary representation of your model built by class ModuleList().
