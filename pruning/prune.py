@@ -10,7 +10,7 @@ def to_prune(model):
         try:
             for j in range(len(model.module_list[i])):
                 block = model.module_list[i][j]
-                if str(block).split('(')[0] == 'Conv2d':
+                if str(block).split('(')[0] == 'Conv2d' and i+1 not in model.yolo_layers:
                     blocks.append(i)
 
         except:
