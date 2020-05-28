@@ -18,3 +18,38 @@ def to_prune(model):
             pass
 
     return blocks
+
+def get_layer_info(layer):
+
+    hyperparameters = dict()
+    parameters = dict()
+
+    if str(layer).split('(')[0] == 'Conv2d':
+        
+        hyperparameters['in_channels'] = layer.in_channels
+        hyperparameters['out_channels'] = layer.out_channels
+        hyperparameters['kernel_size'] = layer.kernel_size
+        hyperparameters['stride'] = layer.stride
+        hyperparameters['padding'] = layer.padding
+
+        if layer.bias is not None:
+            hyperparameters['bias'] = True
+            parameters['bias'] = layer.bias.clone()
+        else:
+            hyperparameters['bias'] = False
+            parameters['bias'] = None
+        parameters['weight'] = layer.weight.clone()
+
+
+    elif str(layer).split('(')[0] == 'BatchNorm2d':
+
+        hyperparameters['num_features'] = layer.num_features
+        hyperparameters['eps'] = layer.eps
+        hyperparameters['momentum'] = layer.momentum
+        hyperparameters['affine'] = layer.affine
+        hyperparameters['track_running_stats'] = layer.track_running_stats
+
+        parameters['bias'] = layer.bias.clone()
+        parameters['weight'] = layer.weight.clone()
+        
+    return hyperparameters, parameters
