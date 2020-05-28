@@ -129,54 +129,54 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO'):
 
 def view(model, block, filter):
 
-print('MODEL BEFORE PRUNING\n')
-print(model.module_list[block:block+2], '\n')
+    print('MODEL BEFORE PRUNING\n')
+    print(model.module_list[block:block+2], '\n')
 
-print('Current Conv2d Weights:', model.module_list[block][0].weight.data.shape[0], 'x',
-                                    model.module_list[block][0].weight.data.shape[1], 'x',
-                                    model.module_list[block][0].weight.data.shape[2], 'x',
-                                    model.module_list[block][0].weight.data.shape[3])
-try:
-    print('Current Conv2d Bias:', model.module_list[block][0].bias.data.shape[0])
-except:
-    pass
-try:
-    print('Current BatchNorm2d Weights:', model.module_list[block][1].weight.data.shape[0])
-    print('Current BatchNorm2d Bias:', model.module_list[block][1].bias.data.shape[0])
-except:
-    pass
-try:
-    print('Next Conv2d Weights:', model.module_list[block+1][0].weight.data.shape[0], 'x',
-                                    model.module_list[block+1][0].weight.data.shape[1], 'x',
-                                    model.module_list[block+1][0].weight.data.shape[2], 'x',
-                                    model.module_list[block+1][0].weight.data.shape[3])
-    print('Next Conv2d Bias:', model.module_list[block+1][0].bias.data.shape[0])
-except:
-    pass
+    print('Current Conv2d Weights:', model.module_list[block][0].weight.data.shape[0], 'x',
+                                        model.module_list[block][0].weight.data.shape[1], 'x',
+                                        model.module_list[block][0].weight.data.shape[2], 'x',
+                                        model.module_list[block][0].weight.data.shape[3])
+    try:
+        print('Current Conv2d Bias:', model.module_list[block][0].bias.data.shape[0])
+    except:
+        pass
+    try:
+        print('Current BatchNorm2d Weights:', model.module_list[block][1].weight.data.shape[0])
+        print('Current BatchNorm2d Bias:', model.module_list[block][1].bias.data.shape[0])
+    except:
+        pass
+    try:
+        print('Next Conv2d Weights:', model.module_list[block+1][0].weight.data.shape[0], 'x',
+                                        model.module_list[block+1][0].weight.data.shape[1], 'x',
+                                        model.module_list[block+1][0].weight.data.shape[2], 'x',
+                                        model.module_list[block+1][0].weight.data.shape[3])
+        print('Next Conv2d Bias:', model.module_list[block+1][0].bias.data.shape[0])
+    except:
+        pass
 
-model = pruning(model, block, filter)
+    model = pruning(model, block, filter)
 
-print('\nMODEL AFTER PRUNING \n')
-print(model.module_list[block:block+2], '\n')
+    print('\nMODEL AFTER PRUNING \n')
+    print(model.module_list[block:block+2], '\n')
 
-print('Current Conv2d Weights:', model.module_list[block][0].weight.data.shape[0], 'x',
-                                    model.module_list[block][0].weight.data.shape[1], 'x',
-                                    model.module_list[block][0].weight.data.shape[2], 'x',
-                                    model.module_list[block][0].weight.data.shape[3])
-try:
-    print('Current Conv2d Bias:', model.module_list[block][0].bias.data.shape[0])
-except:
-    pass
-try:
-    print('Current BatchNorm2d Weights:', model.module_list[block][1].weight.data.shape[0])
-    print('Current BatchNorm2d Bias:', model.module_list[block][1].bias.data.shape[0])
-except:
-    pass
-try:
-    print('Next Conv2d Weights:', model.module_list[block+1][0].weight.data.shape[0], 'x',
-                                    model.module_list[block+1][0].weight.data.shape[1], 'x',
-                                    model.module_list[block+1][0].weight.data.shape[2], 'x',
-                                    model.module_list[block+1][0].weight.data.shape[3])
-    print('Next Conv2d Bias:', model.module_list[block+1][0].bias.data.shape[0])
-except:
-    pass
+    print('Current Conv2d Weights:', model.module_list[block][0].weight.data.shape[0], 'x',
+                                        model.module_list[block][0].weight.data.shape[1], 'x',
+                                        model.module_list[block][0].weight.data.shape[2], 'x',
+                                        model.module_list[block][0].weight.data.shape[3])
+    try:
+        print('Current Conv2d Bias:', model.module_list[block][0].bias.data.shape[0])
+    except:
+        pass
+    try:
+        print('Current BatchNorm2d Weights:', model.module_list[block][1].weight.data.shape[0])
+        print('Current BatchNorm2d Bias:', model.module_list[block][1].bias.data.shape[0])
+    except:
+        pass
+    try:
+        print('Next Conv2d Weights:', model.module_list[block+1][0].weight.data.shape[0], 'x',
+                                        model.module_list[block+1][0].weight.data.shape[1], 'x',
+                                        model.module_list[block+1][0].weight.data.shape[2], 'x',
+                                        model.module_list[block+1][0].weight.data.shape[3])
+        print('Next Conv2d Bias:', model.module_list[block+1][0].bias.data.shape[0])
+    except:
+        pass
