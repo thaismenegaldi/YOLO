@@ -2,18 +2,18 @@ import torch
 
 def to_prune(model):
 
-    """ Returns the indexes of convolutional layers in the model."""
+    """ Returns the indexes of convolutional blocks in the model."""
 
-    layers = list()
+    blocks = list()
 
     for i in range(len(model.module_list)):
         try:
             for j in range(len(model.module_list[i])):
-                layer = model.module_list[i][j]
-                if str(layer).split('(')[0] == 'Conv2d':
-                    layers.append(i)
+                block = model.module_list[i][j]
+                if str(block).split('(')[0] == 'Conv2d':
+                    blocks.append(i)
 
         except:
             pass
 
-    return layers
+    return blocks
