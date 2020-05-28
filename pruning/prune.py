@@ -79,3 +79,79 @@ def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
         parameters[name].data = torch.cat((head_tensor, tail_tensor), axis = 1)
 
     return parameters
+
+def pruning(model, block, filter):
+
+    # Current conv layer
+    hyperparameters, parameters = get_layer_info(model.module_list[block][0])
+
+    pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels'],
+                                        out_channels = hyperparameters['out_channels']-1,
+                                        kernel_size = hyperparameters['kernel_size'],
+                                        stride = hyperparameters['stride'],
+                                        padding = hyperparameters['padding'],
+                                        bias = False if parameters['bias'] is None else True                                  
+                                        )
+    
+    # Remove filter
+    parameters = remove_filter(parameters, filter, name = 'weight', channels = 'output')
+
+    # Update pruned_conv_layer
+    pruned_conv_layer.weight.data = parameters['weight'].data
+    pruned_conv_layer.weight.requires_grad = True
+
+    if parameters['bias'] is not None:
+        parameters = remove_filter(parameters, filter, name = 'bias', channels = 'output')
+        pruned_conv_layer.bias.data = parameters['bias'].data
+        pruned_conv_layer.bias.requires_grad = True
+
+    model = replace_layer(model, block, pruned_conv_layer)
+
+    if len(model.module_list[block]) > 1:
+
+        print(model.module_list[block])
+
+        # Current batchnorm layer
+        hyperparameters, parameters = get_layer_info(model.module_list[block][1])
+
+        pruned_batchnorm_layer = torch.nn.BatchNorm2d(num_features = hyperparameters['num_features']-1,
+                                                      eps = hyperparameters['eps'],
+                                                      momentum = hyperparameters['momentum'],
+                                                      affine = hyperparameters['affine'],
+                                                      track_running_stats = hyperparameters['track_running_stats']
+                                                      )
+        
+        parameters = remove_filter(parameters, filter, name = 'weight', channels = 'output')
+        parameters = remove_filter(parameters, filter, name = 'bias', channels = 'output') 
+
+        pruned_batchnorm_layer.weight.data = parameters['weight'].data
+        pruned_batchnorm_layer.weight.requires_grad = True
+
+        pruned_batchnorm_layer.bias.data = parameters['bias'].data
+        pruned_batchnorm_layer.bias.requires_grad = True
+
+        model = replace_layer(model, block, pruned_batchnorm_layer)
+
+    if str(model.module_list[block+1]).split('(')[0] == 'Sequential':
+
+        # Next conv layer
+        hyperparameters, parameters = get_layer_info(model.module_list[block+1][0])
+
+        pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+                                            out_channels = hyperparameters['out_channels'],
+                                            kernel_size = hyperparameters['kernel_size'],
+                                            stride = hyperparameters['stride'],
+                                            padding = hyperparameters['padding'],
+                                            bias = False if parameters['bias'] is None else True                                  
+                                            )
+        
+        # Remove filter
+        parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+        # Update pruned_conv_layer
+        pruned_conv_layer.weight.data = parameters['weight'].data
+        pruned_conv_layer.weight.requires_grad = True
+
+        model = replace_layer(model, block+1, pruned_conv_layer)
+
+    return model 
