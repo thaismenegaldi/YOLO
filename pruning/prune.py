@@ -63,3 +63,19 @@ def replace_layer(model, block, layer):
         model.module_list[block][1] = layer
 
     return model
+
+def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
+
+    if channels == 'output':
+
+        head_tensor = parameters[name][:filter-1]
+        tail_tensor = parameters[name][filter:]
+        parameters[name].data = torch.cat((head_tensor, tail_tensor), axis = 0)
+
+    elif channels == 'input':
+
+        head_tensor = parameters[name][:,:filter-1]
+        tail_tensor = parameters[name][:,filter:]
+        parameters[name].data = torch.cat((head_tensor, tail_tensor), axis = 1)
+
+    return parameters
