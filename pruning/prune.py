@@ -1,4 +1,5 @@
 import torch
+from utils.parse_config import *
 from torch.utils.data import DataLoader
 
 def to_prune(model):
