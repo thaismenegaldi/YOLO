@@ -53,3 +53,13 @@ def get_layer_info(layer):
         parameters['weight'] = layer.weight.clone()
         
     return hyperparameters, parameters
+
+def replace_layer(model, block, layer):
+
+    if str(layer).split('(')[0] == 'Conv2d':
+        model.module_list[block][0] = layer
+
+    elif str(layer).split('(')[0] == 'BatchNorm2d':
+        model.module_list[block][1] = layer
+
+    return model
