@@ -157,3 +157,141 @@ def view(model, block, filter, verbose = False):
         print('Next Conv2d Bias:', model.module_list[block+1][0].bias.data.shape[0])
     except:
         pass
+
+def model_to_cfg(model, 
+                 cfg = 'dfire.cfg',
+                 mode = 'train',
+                 img_size = (416, 416, 3), 
+                 learning_rate = 0.001,
+                 batch = 64,
+                 subdivisions = 16,
+                 max_batches = 8000,
+                 burn_in = 1000,
+                 policy = 'steps',
+                 steps = [3600, 4200],
+                 scales = [.1, .1],
+                 momentum = 0.9,
+                 decay = 0.0005,
+                 angle = 0,
+                 saturation = 1.5,
+                 exposure = 1.5,
+                 hue = .1,
+                 mosaic = 1):
+
+    file = open(cfg, 'w+')  
+
+    file.write('[net]\n')
+
+    if mode == 'train':
+
+        file.write('# Testing\n')
+        file.write('#batch = 1\n')
+        file.write('#subdivisions = 1\n')
+
+        file.write('# Training\n')
+        file.write('batch = %d\n' % (batch))
+        file.write('subdivisions = %d\n' % (subdivisions))
+
+    else: 
+
+        file.write('# Testing\n')
+        file.write('batch = 1\n')
+        file.write('subdivisions = 1\n')
+
+        file.write('# Training\n')
+        file.write('#batch = %d\n' % (batch))
+        file.write('#subdivisions = %d\n' % (subdivisions))
+
+    file.write('width = %d\n' % (img_size[0]))
+    file.write('height = %d\n' % (img_size[1]))
+    
+    try:
+        file.write('channels = %d\n' % (img_size[2]))
+    except:
+        file.write('channels = 1\n')
+
+    file.write('momentum = %s\n' % (str(momentum)))
+    file.write('decay = %s\n' % (str(decay)))
+    file.write('angle = %s\n' % (str(angle)))
+    file.write('saturation = %s\n' % (str(saturation)))
+    file.write('exposure = %s\n' % (str(exposure)))
+    file.write('hue = %s\n' % (str(hue)))
+    file.write('mosaic = %d\n' % (mosaic))
+    file.write('\n')
+
+    file.write('learning_rate = %s\n' % str((learning_rate)))
+    file.write('burn_in = %d\n' % (burn_in))
+    file.write('max_batches = %d\n' % (max_batches))
+    file.write('policy = %s\n' % (policy))
+
+    steps_ = ','.join([str(step) for step in steps])    
+    file.write('steps = %s\n' % (steps_))
+    scales_ = ','.join([str(scale) for scale in scales])    
+    file.write('scales = %s\n' % (scales_))
+    file.write('\n')
+
+    for block in model.module_defs:
+
+        if block['type'] == 'convolutional':
+
+            if block['stride'] > 1:
+                file.write('# Downsample\n\n')
+
+            file.write('[%s]\n' % (block['type']))
+            
+            if block['batch_normalize'] > 0:
+
+                file.write('batch_normalize = %d\n' % (block['batch_normalize']))
+                file.write('filters = %d\n' % (block['filters']))
+                file.write('size = %d\n' % (block['size']))
+                file.write('stride = %d\n' % (block['stride']))
+                file.write('pad = %d\n' % (block['pad']))
+                file.write('activation = %s\n\n' % (block['activation']))
+
+            else:
+
+                file.write('size = %d\n' % (block['size']))
+                file.write('stride = %d\n' % (block['stride']))
+                file.write('pad = %d\n' % (block['pad']))
+                file.write('filters = %d\n' % (block['filters']))
+                file.write('activation = %s\n\n' % (block['activation']))
+
+        elif block['type'] == 'shortcut':
+
+            file.write('[%s]\n' % (block['type']))
+            from_ = ','.join([str(fromm) for fromm in block['from']])
+            file.write('from = %s\n' % (from_))
+            file.write('activation = %s\n\n' % (block['activation']))
+
+        elif block['type'] == 'route':
+
+            file.write('[%s]\n' % (block['type']))
+            layers = ','.join([str(layer) for layer in block['layers']])
+            file.write('layers = %s\n\n' % (layers))
+
+        elif block['type'] == 'yolo':
+
+            file.write('[%s]\n' % (block['type']))
+            masks = ','.join([str(mask) for mask in block['mask']])
+            file.write('mask = %s\n' % (masks))
+
+            anchors_ = ', '.join([(str(int(anchor[0])) + ',' + str(int(anchor[1]))) for anchor in block['anchors']])
+            file.write('anchors = %s\n' % (anchors_))
+
+            file.write('classes = %d\n' % (block['classes']))
+            file.write('num = %d\n' % (block['num']))
+            file.write('jitter = %s\n' % (block['jitter']))
+            file.write('ignore_thresh = %s\n' % (block['ignore_thresh']))
+            file.write('truth_thresh = %d\n' % (block['truth_thresh']))
+            file.write('random = %d\n\n' % (block['random']))
+
+        elif block['type'] == 'upsample':
+
+            file.write('[%s]\n' % (block['type']))
+            file.write('stride = %d\n\n' % (block['stride']))
+
+        else:
+          
+            print('The block %s was not registered\n' % (block['type']))
+
+    file.close()
