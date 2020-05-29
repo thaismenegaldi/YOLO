@@ -158,6 +158,11 @@ def pruning(model, block, filter):
 
         model = replace_layer(model, block+1, pruned_conv_layer)
 
+    model.module_defs[block]['filters'] -= 1
+
+    del pruned_conv_layer
+    del pruned_batchnorm_layer
+
     return model 
 
 def test_pruned_model(model, 
