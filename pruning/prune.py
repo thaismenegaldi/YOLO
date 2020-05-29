@@ -113,8 +113,6 @@ def pruning(model, block, filter):
 
     if len(model.module_list[block]) > 1:
 
-        print(model.module_list[block])
-
         # Current batchnorm layer
         hyperparameters, parameters = get_layer_info(model.module_list[block][1])
 
@@ -162,6 +160,8 @@ def pruning(model, block, filter):
 
     del pruned_conv_layer
     del pruned_batchnorm_layer
+
+    print('Convolutional filter %d pruned from block %d' % (filter, block))
 
     return model 
 
