@@ -88,7 +88,7 @@ def train(hyp):
     nc = 1 if opt.single_cls else int(data_dict['classes'])  # number of classes
 
     hyp['lr0'] = opt.lr0
-    hyp['cls'] = opt.cls * nc / 80  # update coco-tuned hyp['cls'] to current dataset
+    hyp['cls'] = opt.cls #* nc / 80  # update coco-tuned hyp['cls'] to current dataset
     hyp['obj'] = opt.obj
     hyp['giou'] = opt.giou
 
