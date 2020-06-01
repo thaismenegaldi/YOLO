@@ -84,7 +84,7 @@ def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
 
     return parameters
 
-def pruning(model, block, filter):
+def single_pruning(model, block, filter):
 
     # Current conv layer
     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
@@ -163,7 +163,20 @@ def pruning(model, block, filter):
 
     print('Convolutional filter %d pruned from block %d' % (filter, block))
 
-    return model 
+    return model
+
+def random_pruning(model, n_filters = 100):
+
+    blocks = to_prune(model)
+
+    for n in range(n_filters):
+
+        block = blocks[np.random.randint(low = 0, high = len(blocks), size = 1)[0]]
+        filter = np.random.randint(low = 0, high = model.module_list[block][0].out_channels, size = 1)[0]
+
+        model = single_pruning(model, block, filter)
+
+    return model
 
 def test_pruned_model(model, 
                       data, 
