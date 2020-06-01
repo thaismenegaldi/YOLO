@@ -24,7 +24,7 @@ def sparsity(model, describe = False):
     
     print('Global sparsity: %.2f%%' % np.mean(np.array(sparsities)))
 
-def summary(model, input_shape = (3, 416, 416), name = 'YOLO'):
+def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
 
     """ Prints a summary representation of your model built by class ModuleList().
         Similar to model.summary() in Keras. """
@@ -35,73 +35,80 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO'):
     layers = list()
     output_shape = input_shape
 
-    print('{:>42}'.format(name + ' Model Summary'))
-    print('---------------------------------------------------------------------')
-    print('{:>20} {:>20} {:>20}'.format('Layer (Type)', 'Output Shape', 'Parameters #'))
-    print('=====================================================================')
+    if verbose:
+
+        print('{:>42}'.format(name + ' Model Summary'))
+        print('---------------------------------------------------------------------')
+        print('{:>20} {:>20} {:>20}'.format('Layer (Type)', 'Output Shape', 'Parameters #'))
+        print('=====================================================================')
 
     for i in range(len(model.module_list)):
 
         try:
 
-              for j in range(len(model.module_list[i])):
+            for j in range(len(model.module_list[i])):
 
-                  layer = str(type(model.module_list[i][j])).split('.')[-1].split("'")[0]
-                  layers.append(layer)
+                layer = str(type(model.module_list[i][j])).split('.')[-1].split("'")[0]
+                layers.append(layer)
 
-                  if layer == 'Conv2d':
-                    
-                    in_channels = model.module_list[i][j].in_channels
-                    out_channels = model.module_list[i][j].out_channels
-                    kernel_size = model.module_list[i][j].kernel_size[0]
-                    padding = model.module_list[i][j].padding[0]
-                    stride = model.module_list[i][j].stride[0]
+                if layer == 'Conv2d':
+                
+                in_channels = model.module_list[i][j].in_channels
+                out_channels = model.module_list[i][j].out_channels
+                kernel_size = model.module_list[i][j].kernel_size[0]
+                padding = model.module_list[i][j].padding[0]
+                stride = model.module_list[i][j].stride[0]
 
-                    out_size = (output_shape[1] + 2*padding - kernel_size)/stride + 1
-                    output_shape = (int(out_channels), int(out_size), int(out_size))
+                out_size = (output_shape[1] + 2*padding - kernel_size)/stride + 1
+                output_shape = (int(out_channels), int(out_size), int(out_size))
 
-                    if str(model.module_list[i][j].bias) == 'None':
-                      num_params = np.power(kernel_size, 2) * in_channels * out_channels
-                    else:
-                      num_params = np.power(kernel_size, 2) * in_channels * out_channels + out_channels        
+                if str(model.module_list[i][j].bias) == 'None':
+                    num_params = np.power(kernel_size, 2) * in_channels * out_channels
+                else:
+                    num_params = np.power(kernel_size, 2) * in_channels * out_channels + out_channels        
 
-                  elif layer == 'BatchNorm2d':
-                      num_features = model.module_list[i][j].num_features
-                      num_params = 2*num_features
+                elif layer == 'BatchNorm2d':
+                    num_features = model.module_list[i][j].num_features
+                    num_params = 2*num_features
 
-                  else:
-                      num_params = 0
+                else:
+                    num_params = 0
 
 
-                  count += 1
-                  total_params += num_params
+                count += 1
+                total_params += num_params
 
-                  print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
+                if verbose:
+                    print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
         
         except:
 
-              count += 1
-              layer = str(model.module_list[i]).split('(')[0]
-              layers.append(layer)
-              
-              if layer == 'Upsample':
-                  factor = int(model.module_list[i].scale_factor)
-                  num_params = 0
-                  output_shape = (output_shape[0], factor*output_shape[1], factor*output_shape[2])
-                  print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
-              
-              elif layer == 'WeightedFeatureFusion':
-                  num_params = 0
-                  print('{:>10} {:>15} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
+            count += 1
+            layer = str(model.module_list[i]).split('(')[0]
+            layers.append(layer)
+            
+            if layer == 'Upsample':
+                factor = int(model.module_list[i].scale_factor)
+                num_params = 0
+                output_shape = (output_shape[0], factor*output_shape[1], factor*output_shape[2])
+                if verbose:
+                    print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
+            
+            elif layer == 'WeightedFeatureFusion':
+                num_params = 0
+                if verbose:
+                    print('{:>10} {:>15} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
 
-              else:
-                  num_params = 0
-                  print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
+            else:
+                num_params = 0
+                if verbose:
+                    print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
 
-              total_params += num_params
+            total_params += num_params
             
         if i != len(model.module_list)-1:
-            print('---------------------------------------------------------------------')
+            if verbose:
+                print('---------------------------------------------------------------------')
 
     assert total_params == sum(x.numel() for x in model.parameters()), 'Parameter count error'
 
@@ -114,7 +121,10 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO'):
     # Set of layers
     layers = {x:layers.count(x) for x in set(layers)}
     
-    print('=====================================================================')
+    if verbose:
+        print('=====================================================================')
+    else:
+        print('---------------------------------------------------------------------')
 
     for key, value in layers.items():
         total_layers += value
@@ -134,7 +144,6 @@ def view(model, block, filter, verbose = False):
 
         print('Model block:\n', model.module_list[block:block+2], '\n')
         print('.cfg block:\n', model.module_defs[block], '\n')
-        print('Weight matrix:\n', model.module_list[block][0].weight[filter].data)
 
     print('Current Conv2d Weights:', model.module_list[block][0].weight.data.shape[0], 'x',
                                         model.module_list[block][0].weight.data.shape[1], 'x',
