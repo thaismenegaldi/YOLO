@@ -62,10 +62,10 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
                     out_size = (output_shape[1] + 2*padding - kernel_size)/stride + 1
                     output_shape = (int(out_channels), int(out_size), int(out_size))
 
-                if str(model.module_list[i][j].bias) == 'None':
-                    num_params = np.power(kernel_size, 2) * in_channels * out_channels
-                else:
-                    num_params = np.power(kernel_size, 2) * in_channels * out_channels + out_channels        
+                    if str(model.module_list[i][j].bias) == 'None':
+                        num_params = np.power(kernel_size, 2) * in_channels * out_channels
+                    else:
+                        num_params = np.power(kernel_size, 2) * in_channels * out_channels + out_channels        
 
                 elif layer == 'BatchNorm2d':
                     num_features = model.module_list[i][j].num_features
