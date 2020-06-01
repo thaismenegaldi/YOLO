@@ -53,14 +53,14 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
 
                 if layer == 'Conv2d':
                 
-                in_channels = model.module_list[i][j].in_channels
-                out_channels = model.module_list[i][j].out_channels
-                kernel_size = model.module_list[i][j].kernel_size[0]
-                padding = model.module_list[i][j].padding[0]
-                stride = model.module_list[i][j].stride[0]
+                    in_channels = model.module_list[i][j].in_channels
+                    out_channels = model.module_list[i][j].out_channels
+                    kernel_size = model.module_list[i][j].kernel_size[0]
+                    padding = model.module_list[i][j].padding[0]
+                    stride = model.module_list[i][j].stride[0]
 
-                out_size = (output_shape[1] + 2*padding - kernel_size)/stride + 1
-                output_shape = (int(out_channels), int(out_size), int(out_size))
+                    out_size = (output_shape[1] + 2*padding - kernel_size)/stride + 1
+                    output_shape = (int(out_channels), int(out_size), int(out_size))
 
                 if str(model.module_list[i][j].bias) == 'None':
                     num_params = np.power(kernel_size, 2) * in_channels * out_channels
