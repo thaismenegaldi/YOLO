@@ -256,6 +256,9 @@ def train(hyp):
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
+        if epoch == opt.early_stopping:
+            break
+
         # Update image weights (optional)
         if dataset.image_weights:
             w = model.class_weights.cpu().numpy() * (1 - maps) ** 2  # class weights
@@ -430,6 +433,7 @@ if __name__ == '__main__':
     parser.add_argument('--cls', type = float, default = 37.4, help = 'cls loss gain')
     parser.add_argument('--giou', type = float, default = 3.54, help = 'giou loss gain')
     parser.add_argument('--obj', type = float, default = 64.3, help = 'obj loss gain')
+    parser.add_argument('--early-stopping', type = int, default = -1, help = 'early stopping point')
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
 
     opt = parser.parse_args()
