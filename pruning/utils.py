@@ -140,6 +140,8 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
 
 def view(model, block, filter, verbose = False):
 
+    """ Method for viewing specific blocks of the network. """
+
     if verbose:
 
         print('Model block:\n', model.module_list[block:block+2], '\n')
@@ -186,6 +188,8 @@ def model_to_cfg(model,
                  exposure = 1.5,
                  hue = .1,
                  mosaic = 1):
+
+    """ Converts the PyTorch model to a Darknet .cfg file. """
 
     file = open(cfg, 'w+')  
 

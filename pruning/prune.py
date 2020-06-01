@@ -6,7 +6,7 @@ from utils.datasets import LoadImagesAndLabels
 
 def to_prune(model):
 
-    """ Returns the indexes of convolutional blocks in the model."""
+    """ Returns the indexes of the convolutional blocks that can be pruned."""
 
     blocks = list()
 
@@ -15,6 +15,7 @@ def to_prune(model):
             for j in range(len(model.module_list[i])):
                 block = model.module_list[i][j]
                 next_block = str(model.module_list[i+1]).split('(')[0]
+                # It must be a sequential block containing "Conv2d + BatchNorm2d + LeakyReLU" and that does not precede a YOLO layer
                 if str(block).split('(')[0] == 'Conv2d' and i+1 not in model.yolo_layers and next_block == 'Sequential':
                     blocks.append(i)
 
@@ -25,9 +26,12 @@ def to_prune(model):
 
 def get_layer_info(layer):
 
+    """ Extracts information that makes up the layer, as well as its weights and bias. """
+
     hyperparameters = dict()
     parameters = dict()
 
+    # Convolutional layer
     if str(layer).split('(')[0] == 'Conv2d':
         
         hyperparameters['in_channels'] = layer.in_channels
@@ -44,7 +48,7 @@ def get_layer_info(layer):
             parameters['bias'] = None
         parameters['weight'] = layer.weight.clone()
 
-
+    # Batch normalization layer
     elif str(layer).split('(')[0] == 'BatchNorm2d':
 
         hyperparameters['num_features'] = layer.num_features
@@ -60,6 +64,8 @@ def get_layer_info(layer):
 
 def replace_layer(model, block, layer):
 
+    """ Replaces original layer with pruned layer. """
+
     if str(layer).split('(')[0] == 'Conv2d':
         model.module_list[block][0] = layer
 
@@ -69,6 +75,8 @@ def replace_layer(model, block, layer):
     return model
 
 def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
+
+    """ Removes convolutional filter from a layer. """
 
     if channels == 'output':
 
@@ -86,9 +94,12 @@ def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
 
 def single_pruning(model, block, filter):
 
-    # Current conv layer
+    """ Pruning a single convolutional filter of the model. """
+
+    # Get information from the current convolutional layer
     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
 
+    # Creates a replica of the convolutional layer to perform pruning
     pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels'],
                                         out_channels = hyperparameters['out_channels']-1,
                                         kernel_size = hyperparameters['kernel_size'],
@@ -97,10 +108,10 @@ def single_pruning(model, block, filter):
                                         bias = False if parameters['bias'] is None else True                                  
                                         )
     
-    # Remove filter
+    # Removes convolutional filter
     parameters = remove_filter(parameters, filter, name = 'weight', channels = 'output')
 
-    # Update pruned_conv_layer
+    # Updates pruned convolutional layer
     pruned_conv_layer.weight.data = parameters['weight'].data
     pruned_conv_layer.weight.requires_grad = True
 
@@ -109,13 +120,16 @@ def single_pruning(model, block, filter):
         pruned_conv_layer.bias.data = parameters['bias'].data
         pruned_conv_layer.bias.requires_grad = True
 
+    # Exchanges the original layer with the pruned layer
     model = replace_layer(model, block, pruned_conv_layer)
 
+    # If the block contains more than one layer, convolutional layer is the first
     if len(model.module_list[block]) > 1:
 
-        # Current batchnorm layer
+        # Get information from the current batch normalization layer
         hyperparameters, parameters = get_layer_info(model.module_list[block][1])
 
+        # Creates a replica of the batch normalization layer to perform pruning
         pruned_batchnorm_layer = torch.nn.BatchNorm2d(num_features = hyperparameters['num_features']-1,
                                                       eps = hyperparameters['eps'],
                                                       momentum = hyperparameters['momentum'],
@@ -123,6 +137,7 @@ def single_pruning(model, block, filter):
                                                       track_running_stats = hyperparameters['track_running_stats']
                                                       )
         
+        # Removes filter
         parameters = remove_filter(parameters, filter, name = 'weight', channels = 'output')
         parameters = remove_filter(parameters, filter, name = 'bias', channels = 'output') 
 
@@ -132,13 +147,16 @@ def single_pruning(model, block, filter):
         pruned_batchnorm_layer.bias.data = parameters['bias'].data
         pruned_batchnorm_layer.bias.requires_grad = True
 
+        # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block, pruned_batchnorm_layer)
 
+    # If the next block is also sequential
     if str(model.module_list[block+1]).split('(')[0] == 'Sequential':
 
-        # Next conv layer
+        # Get information from the next convolutional layer
         hyperparameters, parameters = get_layer_info(model.module_list[block+1][0])
 
+        # Creates a replica of the convolutional layer to perform pruning
         pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
                                             out_channels = hyperparameters['out_channels'],
                                             kernel_size = hyperparameters['kernel_size'],
@@ -147,17 +165,20 @@ def single_pruning(model, block, filter):
                                             bias = False if parameters['bias'] is None else True                                  
                                             )
         
-        # Remove filter
+        # Removes convolutional filter
         parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
 
-        # Update pruned_conv_layer
+        # Updates pruned convolutional layer
         pruned_conv_layer.weight.data = parameters['weight'].data
         pruned_conv_layer.weight.requires_grad = True
 
+        # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+1, pruned_conv_layer)
 
+    # Removes convolutional filter from attribute related to .cfg file
     model.module_defs[block]['filters'] -= 1
 
+    # Deletes auxiliary layers
     del pruned_conv_layer
     del pruned_batchnorm_layer
 
@@ -166,6 +187,8 @@ def single_pruning(model, block, filter):
     return model
 
 def random_pruning(model, n_filters = 100):
+
+    """ Random pruning of convolutional filters in the model. """
 
     blocks = to_prune(model)
 
@@ -192,6 +215,8 @@ def test_pruned_model(model,
                       augment = False, 
                       dataloader = None, 
                       multi_label = True):
+
+    """ Evaluates performance metrics in the pruned model without loading the .cfg file. """
 
     # Fuse
     model.fuse()
