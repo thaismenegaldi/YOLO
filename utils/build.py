@@ -72,7 +72,7 @@ def Scheduler(optimizer, hyp, opt, verbose = False):
     elif opt['scheduler'].lower() == 'invexp':
         # Inverse exp ramp
         if verbose:
-            print('Policy: Inverse Exponential)
+            print('Policy: Inverse Exponential')
         lf = lambda x: 1 - 10 ** (hyp['lrf'] * (1 - x / opt['epochs']))
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda = lf) 
     else:
