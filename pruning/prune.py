@@ -229,7 +229,7 @@ def norm(model, order = 'L2'):
 
     return importances
 
-def ranked_pruning(model, rate, rank):
+def ranked_pruning(model, rate, rank, reverse = False):
 
     """ Criteria-based pruning of convolutional filters in the model. """
   
@@ -239,7 +239,7 @@ def ranked_pruning(model, rate, rank):
 
     if rank.upper() in norms:
         importances = norm(model, order = rank)
-        importances.sort(key = lambda value: value[2])
+        importances.sort(key = lambda value: value[2], reverse)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2 or L-Inf.' % (rank))
 
