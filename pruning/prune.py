@@ -239,7 +239,7 @@ def ranked_pruning(model, rate, rank, reverse = False):
 
     if rank.upper() in norms:
         importances = norm(model, order = rank)
-        importances.sort(key = lambda value: value[2], reverse)
+        importances.sort(key = lambda value: value[2], reverse = reverse)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2 or L-Inf.' % (rank))
 
