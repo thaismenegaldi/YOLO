@@ -24,6 +24,19 @@ def to_prune(model):
 
     return blocks
 
+def prunable_filters(model):
+
+    """ Computes number of prunable filters. """
+
+    n_filters = 0
+
+    blocks = to_prune(model)
+
+    for block in blocks:
+        n_filters += model.module_list[block][0].weight.data.shape[0]
+
+    return n_filters
+
 def get_layer_info(layer):
 
     """ Extracts information that makes up the layer, as well as its weights and bias. """
@@ -186,11 +199,67 @@ def single_pruning(model, block, filter):
 
     return model
 
-def random_pruning(model, n_filters = 100):
+def norm(model, order = 'L2'):
+
+    """ Computes the importance of convolutional filters based on the norm of the weights. """
+
+    if order.upper() == 'L0':
+      p = 0
+    elif order.upper() == 'L1':
+      p = 1
+    elif order.upper() == 'L2':
+      p = 2
+    elif order.upper() == 'L-INF':
+      p = float('inf')
+    else:
+      raise AssertionError('The order %s does not exist. Try L0, L1, L2 or L-Inf.' % (order)) 
+
+    importances = list()
+
+    blocks = to_prune(model)
+
+    for block in blocks:
+
+        n_filters = model.module_list[block][0].weight.data.shape[0]
+
+        for i in range(n_filters):
+
+            importance = model.module_list[block][0].weight[i].data.norm(p).item()
+            importances.append([block, i, importance])
+
+    return importances
+
+def ranked_pruning(model, rate, rank):
+
+    """ Criteria-based pruning of convolutional filters in the model. """
+  
+    norms = ['L0', 'L1', 'L2', 'L-INF']
+
+    print('Criteria-based pruning %s' % (rank.upper()))
+
+    if rank.upper() in norms:
+        importances = norm(model, order = rank)
+        importances.sort(key = lambda value: value[2])
+    else:
+      raise AssertionError('The rank %s does not exist. Try L0, L1, L2 or L-Inf.' % (rank))
+
+    n_filters = int(prunable_filters(model) * rate)
+
+    for i in range(len(importances[:n_filters])):
+        block, filter, importance = importances[i]
+        model = single_pruning(model, block, filter)
+
+    print('%d filters were pruned.' % (n_filters))
+
+    return model
+
+def random_pruning(model, rate):
 
     """ Random pruning of convolutional filters in the model. """
 
     blocks = to_prune(model)
+
+    n_filters = int(prunable_filters(model) * rate)
 
     for n in range(n_filters):
 
