@@ -267,7 +267,7 @@ def ranked_pruning(model, rate, rank):
         block, filter, importance = selected[i]
         model = single_pruning(model, block, filter)
 
-    print('%d filters were pruned.' % (n_filters))
+    print('%d filters were pruned.' % (len(selected)))
 
     return model
 
