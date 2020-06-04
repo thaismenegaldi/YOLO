@@ -230,10 +230,7 @@ def norm(model, order = 'L2'):
 
     return importances
 
-def select_filters(importances, rate, ascending = True):
-
-    # Number of filters to be removed per layer
-    n_filters = int(prunable_filters(model) * rate)
+def select_filters(importances, n_filters, ascending = True):
 
     importances = pd.DataFrame(importances, columns = ['Block', 'Filter', 'Importance'])
     # Sorting importances
@@ -257,9 +254,12 @@ def ranked_pruning(model, rate, rank):
 
     print('Criteria-based pruning %s\n' % (rank.upper()))
 
+    # Number of filters per layer to be removed
+    n_filters = int(prunable_filters(model) * rate)
+
     if rank.upper() in norms:
         importances = norm(model, order = rank)
-        selected = select_filters(importances, rate, ascending = True)
+        selected = select_filters(importances, n_filters, ascending = True)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2 or L-Inf.' % (rank))
 
