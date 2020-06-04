@@ -110,7 +110,7 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
             if verbose:
                 print('---------------------------------------------------------------------')
 
-    assert total_params == sum(x.numel() for x in model.parameters()), 'Parameter count error'
+    #assert total_params == sum(x.numel() for x in model.parameters()), 'Parameter count error'
 
     # Assume 4 bytes/number (float on cuda).
     total_params_size = round(abs(total_params * 4. / (1024 ** 2.)), 2)
