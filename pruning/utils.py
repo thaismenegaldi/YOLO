@@ -29,7 +29,6 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
     """ Prints a summary representation of your model built by class ModuleList().
         Similar to model.summary() in Keras. """
     
-    total_params = 0
     total_layers = 0
     count = 0
     layers = list()
@@ -76,7 +75,6 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
 
 
                 count += 1
-                total_params += num_params
 
                 if verbose:
                     print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
@@ -103,14 +101,13 @@ def summary(model, input_shape = (3, 416, 416), name = 'YOLO', verbose = True):
                 num_params = 0
                 if verbose:
                     print('{:>20} {:>20} {:>15}'.format(layer + '-' + str(count), str(output_shape), '{:,}'.format(num_params)))
-
-            total_params += num_params
-            
+           
         if i != len(model.module_list)-1:
             if verbose:
                 print('---------------------------------------------------------------------')
 
-    #assert total_params == sum(x.numel() for x in model.parameters()), 'Parameter count error'
+    # Number of parameters
+    total_params = sum(x.numel() for x in model.parameters())
 
     # Assume 4 bytes/number (float on cuda).
     total_params_size = round(abs(total_params * 4. / (1024 ** 2.)), 2)
