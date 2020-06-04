@@ -199,7 +199,7 @@ def single_pruning(model, block, filter):
     del pruned_conv_layer
     del pruned_batchnorm_layer
 
-    log.write('Convolutional filter %d pruned from block %d' % (filter, block))
+    log.write('Convolutional filter %d pruned from block %d\n' % (filter, block))
 
     return model
 
