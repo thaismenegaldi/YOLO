@@ -111,7 +111,7 @@ def single_pruning(model, block, filter):
     """ Pruning a single convolutional filter of the model. """
 
     # Log file
-    log = open('pruned_filters.txt', 'w+')
+    log = open('pruned_filters.txt', 'a+')
 
     # Get information from the current convolutional layer
     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
@@ -270,7 +270,7 @@ def ranked_pruning(model, rate, rank):
         block, filter, importance = selected[i]
         model = single_pruning(model, block, filter)
 
-    print('\n%d filters were pruned.' % (len(selected)))
+    print('%d filters were pruned.' % (len(selected)))
 
     return model
 
