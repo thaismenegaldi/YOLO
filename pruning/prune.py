@@ -1,4 +1,5 @@
 import torch
+import pandas as pd
 from utils.utils import *
 from utils.parse_config import *
 from torch.utils.data import DataLoader
@@ -229,7 +230,26 @@ def norm(model, order = 'L2'):
 
     return importances
 
-def ranked_pruning(model, rate, rank, reverse = False):
+def select_filters(importances, rate, ascending = True):
+
+    # Number of filters to be removed per layer
+    n_filters = int(prunable_filters(model) * rate)
+
+    importances = pd.DataFrame(importances, columns = ['Block', 'Filter', 'Importance'])
+    # Sorting importances
+    importances = importances.sort_values(by = 'Importance', ascending = ascending)
+
+    selected = list()
+    # Selecting the filters for each layer that will be pruned
+    blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
+    for block in blocks:
+        selected.append(importances.query('Block == @block')[:n_filters])
+    selected = pd.concat(selected)
+
+    # Returns tuple with less important filters
+    return list(selected.to_records(index=False))
+
+def ranked_pruning(model, rate, rank):
 
     """ Criteria-based pruning of convolutional filters in the model. """
   
@@ -239,14 +259,12 @@ def ranked_pruning(model, rate, rank, reverse = False):
 
     if rank.upper() in norms:
         importances = norm(model, order = rank)
-        importances.sort(key = lambda value: value[2], reverse = reverse)
+        selected = select_filters(importances, rate, ascending = True)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2 or L-Inf.' % (rank))
 
-    n_filters = int(prunable_filters(model) * rate)
-
-    for i in range(len(importances[:n_filters])):
-        block, filter, importance = importances[i]
+    for i in range(len(selected)):
+        block, filter, importance = selected[i]
         model = single_pruning(model, block, filter)
 
     print('%d filters were pruned.' % (n_filters))
