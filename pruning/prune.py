@@ -110,6 +110,9 @@ def single_pruning(model, block, filter):
 
     """ Pruning a single convolutional filter of the model. """
 
+    # Log file
+    log = open('pruned_filters.txt', 'w+')
+
     # Get information from the current convolutional layer
     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
 
@@ -196,7 +199,7 @@ def single_pruning(model, block, filter):
     del pruned_conv_layer
     del pruned_batchnorm_layer
 
-    print('Convolutional filter %d pruned from block %d' % (filter, block))
+    log.write('Convolutional filter %d pruned from block %d' % (filter, block))
 
     return model
 
