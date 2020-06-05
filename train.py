@@ -259,6 +259,8 @@ def train(hyp):
         if epoch == opt.early_stopping:
             break
 
+        print('Current learning rate: %f\n' % (optimizer.param_groups[0]['lr']))
+
         # Update image weights (optional)
         if dataset.image_weights:
             w = model.class_weights.cpu().numpy() * (1 - maps) ** 2  # class weights
