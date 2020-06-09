@@ -100,6 +100,10 @@ def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
             tail_tensor = parameters[name][filter+1:]
             parameters[name].data = torch.cat((head_tensor, tail_tensor), axis = 0)
 
+        else:
+            parameters[name].data = parameters[name][filter+1:]
+
+
     elif channels == 'input':
 
         if filter != 0:
@@ -107,6 +111,9 @@ def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
             head_tensor = parameters[name][:,:filter]
             tail_tensor = parameters[name][:,filter+1:]
             parameters[name].data = torch.cat((head_tensor, tail_tensor), axis = 1)
+
+        else:
+            parameters[name].data = parameters[name][filter+1:]
 
     return parameters
 
