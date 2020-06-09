@@ -253,7 +253,7 @@ def select_filters(importances, n_filters, ascending = True):
     # Selecting the filters for each layer that will be pruned
     blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
     for i in range(len(blocks)):
-        selected.append(importances.query('Block == @blocks[i]')[:n_filters[i]])
+        selected.append(importances.query('Block == @blocks[@i]')[:n_filters[i]])
     selected = pd.concat(selected)
 
     # Returns tuple with less important filters
