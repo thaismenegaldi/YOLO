@@ -233,17 +233,27 @@ def norm(model, order = 'L2'):
 
     return importances
 
+def per_layer(model, rate):
+
+    n_filters = list()
+
+    blocks = to_prune(model)
+    for block in blocks:
+        n_filters.append(int(model.module_list[block][0].out_channels*rate))
+        
+    return n_filters
+
 def select_filters(importances, n_filters, ascending = True):
 
     importances = pd.DataFrame(importances, columns = ['Block', 'Filter', 'Importance'])
     # Sorting importances
-    importances = importances.sort_values(by = 'Importance', ascending = ascending)
+    importances = importances.sort_values(by = 'Importance', ascending = ascending)    
 
     selected = list()
     # Selecting the filters for each layer that will be pruned
     blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
-    for block in blocks:
-        selected.append(importances.query('Block == @block')[:n_filters])
+    for i in range(blocks):
+        selected.append(importances.query('Block == @blocks[i]')[:n_filters[i]])
     selected = pd.concat(selected)
 
     # Returns tuple with less important filters
@@ -258,7 +268,7 @@ def ranked_pruning(model, rate, rank):
     print('Criteria-based pruning %s\n' % (rank.upper()))
 
     # Number of filters per layer to be removed
-    n_filters = int(prunable_filters(model) * rate)
+    n_filters = per_layer(model, rate)
 
     if rank.upper() in norms:
         importances = norm(model, order = rank)
