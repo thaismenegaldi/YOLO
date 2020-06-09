@@ -235,6 +235,8 @@ def norm(model, order = 'L2'):
 
 def per_layer(model, rate):
 
+    """ Calculates the number of filters that will be removed in each layer. """
+
     n_filters = list()
 
     blocks = to_prune(model)
@@ -244,6 +246,8 @@ def per_layer(model, rate):
     return n_filters
 
 def select_filters(importances, n_filters, ascending = True):
+
+    """ Select the filters to be removed based on their respective importance. """
 
     importances = pd.DataFrame(importances, columns = ['Block', 'Filter', 'Importance'])
     # Sorting importances
