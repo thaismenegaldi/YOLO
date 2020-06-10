@@ -113,7 +113,7 @@ def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
             parameters[name].data = torch.cat((head_tensor, tail_tensor), axis = 1)
 
         else:
-            parameters[name].data = parameters[name][filter+1:]
+            parameters[name].data = parameters[name][:,filter+1:]
 
     return parameters
 
