@@ -203,6 +203,32 @@ def single_pruning(model, block, filter):
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+1, pruned_conv_layer)
 
+    # After YOLO Layer
+    if block in [layer-3 for layer in model.yolo_layers[:-1]]:
+
+        # Get information from the next convolutional layer
+        hyperparameters, parameters = get_layer_info(model.module_list[block+5][0])
+
+        # Creates a replica of the convolutional layer to perform pruning
+        pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+                                            out_channels = hyperparameters['out_channels'],
+                                            kernel_size = hyperparameters['kernel_size'],
+                                            stride = hyperparameters['stride'],
+                                            padding = hyperparameters['padding'],
+                                            bias = False if parameters['bias'] is None else True                                  
+                                            )
+        
+        # Removes convolutional filter
+        parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+        # Updates pruned convolutional layer
+        pruned_conv_layer.weight.data = parameters['weight'].data
+        pruned_conv_layer.weight.requires_grad = True
+
+        # Exchanges the original layer with the pruned layer
+        model = replace_layer(model, block+5, pruned_conv_layer)
+
+
     # Removes convolutional filter from attribute related to .cfg file
     model.module_defs[block]['filters'] -= 1
 
@@ -267,7 +293,6 @@ def select_filters(importances, n_filters, ascending = True):
     selected = list()
     # Selecting the filters for each layer that will be pruned
     blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
-    print(len(blocks))
     if len(blocks) != len(n_filters):
         raise AssertionError('%d != %d\n' % (len(blocks), len(n_filters)))
     for i in range(len(blocks)):
