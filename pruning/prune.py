@@ -270,7 +270,7 @@ def select_filters(importances, n_filters, ascending = True):
     if len(blocks) != len(n_filters):
         raise AssertionError('%d != %d\n' % (len(blocks), len(n_filters)))
     for i in range(len(blocks)):
-        selected.append(importances.query('Block == @blocks[@i]')[:n_filters[i]])
+        selected.append(importances.query('Block == @blocks[@i]')[:n_filters[i]].sort_values(by = 'Filter', ascending = False))
     selected = pd.concat(selected)
 
     # Returns tuple with less important filters
