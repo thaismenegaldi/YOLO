@@ -89,6 +89,7 @@ def train(hyp):
     nc = 1 if opt.single_cls else int(data_dict['classes'])  # number of classes
 
     hyp['lr0'] = opt.lr0
+    hyp['lrf'] = opt.lrf
     hyp['cls'] = opt.cls #* nc / 80  # update coco-tuned hyp['cls'] to current dataset
     hyp['obj'] = opt.obj
     hyp['giou'] = opt.giou
@@ -436,6 +437,7 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer', type = str, default = 'sgd', help='optimizer (sgd or adam)')
     parser.add_argument('--scheduler', type = str, default = 'cos', help='scheduler (steps, cos, invexp)')
     parser.add_argument('--lr0', type = float, default = 0.001, help = 'initial learning rate')
+    parser.add_argument('--lrf', type = float, default = 0.0005, help = 'final learning rate')
     parser.add_argument('--cls', type = float, default = 37.4, help = 'cls loss gain')
     parser.add_argument('--giou', type = float, default = 3.54, help = 'giou loss gain')
     parser.add_argument('--obj', type = float, default = 64.3, help = 'obj loss gain')
