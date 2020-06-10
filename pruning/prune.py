@@ -267,6 +267,7 @@ def select_filters(importances, n_filters, ascending = True):
     selected = list()
     # Selecting the filters for each layer that will be pruned
     blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
+    print(len(blocks))
     if len(blocks) != len(n_filters):
         raise AssertionError('%d != %d\n' % (len(blocks), len(n_filters)))
     for i in range(len(blocks)):
