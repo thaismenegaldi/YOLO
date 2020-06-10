@@ -17,7 +17,7 @@ def to_prune(model):
                 block = model.module_list[i][j]
                 next_block = str(model.module_list[i+1]).split('(')[0]
                 # It must be a sequential block containing "Conv2d + BatchNorm2d + LeakyReLU" and that does not precede a YOLO layer
-                if str(block).split('(')[0] == 'Conv2d' and i+1 not in model.yolo_layers and next_block == 'Sequential' and len(model.module_list[i+1]) > 1:
+                if str(block).split('(')[0] == 'Conv2d' and i+1 not in model.yolo_layers and next_block == 'Sequential': #and len(model.module_list[i+1]) > 1:
                     blocks.append(i)
 
         except:
