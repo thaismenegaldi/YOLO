@@ -281,7 +281,7 @@ def train(hyp):
             targets = targets.to(device)
 
             # Burn-in
-            if ni <= n_burn:
+            if ni <= n_burn and opt.scheduler == 'cos':
                 xi = [0, n_burn]  # x interp
                 model.gr = np.interp(ni, xi, [0.0, 1.0])  # giou loss ratio (obj_loss = 1.0 or giou)
                 accumulate = max(1, np.interp(ni, xi, [1, 64 / batch_size]).round())
