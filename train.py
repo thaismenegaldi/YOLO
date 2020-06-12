@@ -1,6 +1,5 @@
 import argparse
 import datetime
-import numpy as np
 
 import torch.distributed as dist
 import torch.optim as optim
@@ -181,10 +180,9 @@ def train(hyp):
     elif opt.scheduler == 'steps':
         print('Scheduler: Multisteps')
         gamma = 0.1
-        milestones = np.arange(round(epochs*0.8), round(epochs*0.9)+1)
+        milestones = [round(epochs * x) for x in [0.8, 0.9]]
         print('Gamma:', gamma, 'Steps:', milestones[0], milestones[-1])
-        lf = lambda x: hyp['lr0'] if x < milestones[0] else (hyp['lr0']*gamma if x in milestones else hyp['lr0']*gamma**2)
-        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+        scheduler = lr_scheduler.MultiStepLR(optimizer, milestones = milestones, gamma = gamma)
 
     scheduler.last_epoch = start_epoch - 1  # see link below
     
