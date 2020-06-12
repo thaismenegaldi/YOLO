@@ -181,7 +181,7 @@ def train(hyp):
         print('Scheduler: Multisteps')
         gamma = 0.1
         milestones = [round(epochs * x) for x in [0.8, 0.9]]
-        print('Gamma:', gamma, 'Steps:', milestones[0], milestones[-1])
+        print('Gamma:', gamma, 'Steps:', round(0.8*epochs), round(0.9*epochs))
         scheduler = lr_scheduler.MultiStepLR(optimizer, milestones = milestones, gamma = gamma)
 
     scheduler.last_epoch = start_epoch - 1  # see link below
