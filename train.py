@@ -175,10 +175,11 @@ def train(hyp):
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
     elif opt.scheduler == 'invexp':
         print('Scheduler: Inverse Exponential')
+        print('Decay:', hyp['lrf'])
         lf = lambda x: 1 - 10 ** (hyp['lrf'] * (1 - x / epochs))
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
     elif opt.scheduler == 'steps':
-        print('Scheduler: Multisteps')
+        print('Scheduler: Multistep')
         gamma = 0.1
         milestones = [round(epochs * x) for x in [0.8, 0.9]]
         print('Gamma:', gamma, 'Steps:', round(0.8*epochs), round(0.9*epochs))
