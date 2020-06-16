@@ -3,7 +3,7 @@ import pandas as pd
 from utils.utils import *
 from utils.parse_config import *
 from torch.utils.data import DataLoader
-from utils.datasets import LoadImagesAndLabels
+from utils.datasets import *
 
 def to_prune(model):
 
@@ -343,3 +343,62 @@ def random_pruning(model, rate):
         model = single_pruning(model, block, filter)
 
     return model
+
+def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug = -1):
+
+    """ Extracts all feature maps from all layers of the network for each image in the dataset. """    
+
+    feature_maps = list()
+    out_i = list()
+    yolo_out_i = list()
+
+    device = torch_utils.select_device()
+    model = model.to(device)
+
+    # Load dataset images
+    data = parse_data_cfg(data)
+    path = data[set]
+    dataset = LoadImagesAndLabels(path = path, img_size = img_size, rect = True, single_cls = False)
+
+    if debug != -1:
+        samples = debug
+    else:
+        samples = len(dataset)
+
+    # For each image
+    for i in range(samples):
+
+        # Image pre-processing
+        img0, _, _ = load_image(dataset, i)
+        img = letterbox(img0, new_shape=img_size)[0]
+
+        x = torch.from_numpy(img)
+        # Normalization
+        x = x.to(device).float() / 255.0
+        x = x.unsqueeze(1)
+        x = x.permute(1, 3, 2, 0)
+
+        # For each layer
+        for i, module in enumerate(model.module_list):
+
+            name = module.__class__.__name__
+            # Sum with WeightedFeatureFusion() and concat with FeatureConcat()
+            if name in ['WeightedFeatureFusion', 'FeatureConcat']:  
+                x = module(x, out_i)
+            elif name == 'YOLOLayer':
+                yolo_out_i.append(module(x, out_i))
+            # Run module directly, i.e. mtype = 'convolutional', 'upsample', 'maxpool', 'batchnorm2d' etc
+            else:  
+                x = module(x)
+
+            if route is True:
+                out_i.append(x if model.routs[i] else [])
+            else:
+                out_i.append(x)
+            
+        # Feature maps of image i
+        feature_maps.append(list(out_i))
+        out_i.clear()
+        yolo_out_i.clear()
+
+    return feature_maps
