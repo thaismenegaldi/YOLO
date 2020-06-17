@@ -379,7 +379,7 @@ def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug 
         x = x.permute(1, 3, 2, 0)
 
         # For each layer
-        for i, module in enumerate(model.module_list):
+        for j, module in enumerate(model.module_list):
 
             name = module.__class__.__name__
             # Sum with WeightedFeatureFusion() and concat with FeatureConcat()
@@ -392,7 +392,7 @@ def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug 
                 x = module(x)
 
             if route is True:
-                out_i.append(x if model.routs[i] else [])
+                out_i.append(x if model.routs[j] else [])
             else:
                 out_i.append(x)
             
