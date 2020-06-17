@@ -6,6 +6,13 @@ then
     exit -1
 fi
 
+cd Models/
+mkdir -p $1
+cd $1/
+mkdir -p $2
+cd ..
+cd ..
+
 path=Models/$1/$2
 
 # Download .weights
