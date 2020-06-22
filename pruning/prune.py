@@ -347,6 +347,8 @@ def random_pruning(model, rate):
         for filter in filters:
             model = single_pruning(model, blocks[i], filter)
 
+    print('%d filters were pruned.' % (sum(n_filters)))
+
     return model
 
 def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug = -1):
