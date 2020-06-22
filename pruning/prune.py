@@ -285,7 +285,7 @@ def per_layer(model, rate):
 
 def select_filters(importances, n_filters, ascending = True):
 
-    """ Select the filters to be removed based on their respective importance. """Pior 
+    """ Select the filters to be removed based on their respective importance. """ 
 
     importances = pd.DataFrame(importances, columns = ['Block', 'Filter', 'Importance'])
     # Sorting importances
