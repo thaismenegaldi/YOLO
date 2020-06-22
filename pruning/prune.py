@@ -328,11 +328,11 @@ def ranked_pruning(model, rate, rank):
 
     return model
 
-def random_pruning(model, rate):
+def random_pruning(model, rate, seed = 42):
 
     """ Random pruning of convolutional filters in the model. """
 
-    print('Random pruning\n')
+    print('Random pruning with seed %d\n' % (seed))
 
     blocks = to_prune(model)
 
@@ -344,6 +344,7 @@ def random_pruning(model, rate):
 
     for i in range(len(blocks)):
 
+        random.seed(seed)
         filters = -np.sort(-np.array(random.sample(range(model.module_list[blocks[i]][0].out_channels), n_filters[i])))
 
         for filter in filters:
