@@ -332,6 +332,8 @@ def random_pruning(model, rate):
 
     """ Random pruning of convolutional filters in the model. """
 
+    print('Random pruning\n')
+
     blocks = to_prune(model)
 
     # Number of filters per layer to be removed
