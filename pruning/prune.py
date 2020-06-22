@@ -1,4 +1,5 @@
 import torch
+import random
 import pandas as pd
 from utils.utils import *
 from utils.parse_config import *
@@ -284,7 +285,7 @@ def per_layer(model, rate):
 
 def select_filters(importances, n_filters, ascending = True):
 
-    """ Select the filters to be removed based on their respective importance. """
+    """ Select the filters to be removed based on their respective importance. """Pior 
 
     importances = pd.DataFrame(importances, columns = ['Block', 'Filter', 'Importance'])
     # Sorting importances
@@ -333,14 +334,18 @@ def random_pruning(model, rate):
 
     blocks = to_prune(model)
 
-    n_filters = int(prunable_filters(model) * rate)
+    # Number of filters per layer to be removed
+    n_filters = per_layer(model, rate)
 
-    for n in range(n_filters):
+    if len(blocks) != len(n_filters):
+        raise AssertionError('%d != %d\n' % (len(blocks), len(n_filters)))
 
-        block = blocks[np.random.randint(low = 0, high = len(blocks), size = 1)[0]]
-        filter = np.random.randint(low = 0, high = model.module_list[block][0].out_channels, size = 1)[0]
+    for i in range(len(blocks)):
 
-        model = single_pruning(model, block, filter)
+        filters = -np.sort(-np.array(random.sample(range(model.module_list[blocks[i]][0].out_channels), n_filters[i])))
+
+        for filter in filters:
+            model = single_pruning(model, blocks[i], filter)
 
     return model
 
