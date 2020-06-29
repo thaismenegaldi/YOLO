@@ -451,6 +451,8 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
 
 def filter_representation(conv_maps, pool_type = 'max'):
 
+    """ Represents the output of the filters that compose the network as feature vectors for each image. """
+
     if pool_type.lower() == 'avg':
         global_pool = torch.nn.AdaptiveAvgPool2d(output_size = (1))
     else:
