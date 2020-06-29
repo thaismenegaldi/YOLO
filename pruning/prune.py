@@ -368,6 +368,8 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
     device = torch_utils.select_device()
     model = model.to(device)
 
+    blocks = to_prune(model)
+
     # Load dataset images
     data = parse_data_cfg(data)
     path = data[subset]
@@ -412,7 +414,8 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
                         # Convolution
                         Conv2D = module[0]
                         x = Conv2D(x)
-                        conv_i.append(x)
+                        if j in blocks:
+                           conv_i.append(x)
                         
                         # Batch normalization
                         BatchNorm2D = module[1]
@@ -425,7 +428,8 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
                     else:
                         # Single Conv2D
                         x = module(x)
-                        conv_i.append(x)
+                        if j in blocks:
+                            conv_i.append(x)
 
                 # Upsample
                 else:
