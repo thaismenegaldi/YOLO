@@ -448,3 +448,34 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
         yolo_out_i.clear()
 
     return feature_maps, conv_maps
+
+def filter_representation(conv_maps, pool_type = 'max'):
+
+    if pool_type.lower() == 'avg':
+        global_pool = torch.nn.AdaptiveAvgPool2d(output_size = (1))
+    else:
+        global_pool = torch.nn.AdaptiveMaxPool2d(output_size = (1))
+
+    Xw = list()
+
+    # Number of images
+    n_images = len(conv_maps)
+
+    # For each image
+    for i in range(len(conv_maps)):
+
+        # For each convolutional layer
+        for c in range(len(conv_maps[i])):
+
+          # For each batch
+          for b in range(len(conv_maps[i][c])):
+              
+              # For each filter
+              for f in range (len(conv_maps[i][c][b])):
+
+                  feature = global_pool(conv_maps[i][c][b][f].unsqueeze(0))
+                  Xw.append(float(feature))
+
+    Xw = np.array(Xw).reshape((int(len(Xw)/n_images), n_images))
+
+    return Xw
