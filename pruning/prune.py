@@ -354,11 +354,14 @@ def random_pruning(model, rate, seed = 42):
 
     return model
 
-def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug = -1):
+def get_feature_maps(model, data, img_size, subset = 'valid', route = False, debug = -1):
 
     """ Extracts all feature maps from all layers of the network for each image in the dataset. """    
 
     feature_maps = list()
+    conv_maps = list()
+
+    conv_i = list()
     out_i = list()
     yolo_out_i = list()
 
@@ -367,7 +370,7 @@ def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug 
 
     # Load dataset images
     data = parse_data_cfg(data)
-    path = data[set]
+    path = data[subset]
     dataset = LoadImagesAndLabels(path = path, img_size = img_size, rect = True, single_cls = False)
 
     if debug != -1:
@@ -392,14 +395,41 @@ def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug 
         for j, module in enumerate(model.module_list):
 
             name = module.__class__.__name__
+
             # Sum with WeightedFeatureFusion() and concat with FeatureConcat()
             if name in ['WeightedFeatureFusion', 'FeatureConcat']:  
                 x = module(x, out_i)
             elif name == 'YOLOLayer':
                 yolo_out_i.append(module(x, out_i))
             # Run module directly, i.e. mtype = 'convolutional', 'upsample', 'maxpool', 'batchnorm2d' etc
-            else:  
-                x = module(x)
+            else:
+
+                if name == 'Sequential':
+
+                    # Block (Conv2D + BatchNorm2D + LeakyReLU)
+                    if len(module) > 1:
+
+                        # Convolution
+                        Conv2D = module[0]
+                        x = Conv2D(x)
+                        conv_i.append(x)
+                        
+                        # Batch normalization
+                        BatchNorm2D = module[1]
+                        x = BatchNorm2D(x)
+                        
+                        # Activation
+                        LeakyReLU = module[2]
+                        x = LeakyReLU(x)
+
+                    else:
+                        # Single Conv2D
+                        x = module(x)
+                        conv_i.append(x)
+
+                # Upsample
+                else:
+                    x = module(x)
 
             if route is True:
                 out_i.append(x if model.routs[j] else [])
@@ -408,7 +438,9 @@ def get_feature_maps(model, data, img_size, set = 'valid', route = False, debug 
             
         # Feature maps of image i
         feature_maps.append(list(out_i))
+        conv_maps.append(list(conv_i))
+        conv_i.clear()
         out_i.clear()
         yolo_out_i.clear()
 
-    return feature_maps
+    return feature_maps, conv_maps
