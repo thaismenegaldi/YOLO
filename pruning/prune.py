@@ -493,9 +493,9 @@ def class_label_matrix(labels, num_classes = 2):
     for sample in range(len(labels)):
         # False positive sample
         if len(labels[sample]) == 0:
-            labels.append(0)
+            Y.append(0)
         else:
-            labels.append(1)
+            Y.append(1)
 
     # Converts a class vector (integers) to binary class matrix
     Y = torch.eye(num_classes)
