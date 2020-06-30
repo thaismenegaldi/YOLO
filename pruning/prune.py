@@ -479,6 +479,7 @@ def filter_representation(conv_maps, pool_type = 'max'):
                   feature = global_pool(conv_maps[i][c][b][f].unsqueeze(0))
                   X.append(float(feature))
 
-    X = np.array(X).reshape((int(len(X)/n_images), n_images))
+    X = np.array(X).reshape((n_images, int(len(X)/n_images)))
+    X = X.transpose()
 
     return X
