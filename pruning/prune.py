@@ -458,7 +458,8 @@ def filter_representation(conv_maps, pool_type = 'max'):
     else:
         global_pool = torch.nn.AdaptiveMaxPool2d(output_size = (1))
 
-    Xw = list()
+    # Representation of the filters
+    X = list()
 
     # Number of images
     n_images = len(conv_maps)
@@ -476,8 +477,8 @@ def filter_representation(conv_maps, pool_type = 'max'):
               for f in range (len(conv_maps[i][c][b])):
 
                   feature = global_pool(conv_maps[i][c][b][f].unsqueeze(0))
-                  Xw.append(float(feature))
+                  X.append(float(feature))
 
-    Xw = np.array(Xw).reshape((int(len(Xw)/n_images), n_images))
+    X = np.array(X).reshape((int(len(X)/n_images), n_images))
 
-    return Xw
+    return X
