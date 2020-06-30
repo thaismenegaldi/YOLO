@@ -447,7 +447,7 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
         out_i.clear()
         yolo_out_i.clear()
 
-    return feature_maps, conv_maps
+    return feature_maps, conv_maps, dataset.labels
 
 def filter_representation(conv_maps, pool_type = 'max'):
 
@@ -482,3 +482,23 @@ def filter_representation(conv_maps, pool_type = 'max'):
     X = np.array(X).reshape((n_images, int(len(X)/n_images)))
 
     return X
+
+def class_label_matrix(labels, num_classes = 2):
+
+    """ Computes the class label matrix of the training data. """
+
+    # Class label matrix
+    Y = list()
+
+    for sample in range(len(labels)):
+        # False positive sample
+        if len(dataset.labels[sample]) == 0:
+            labels.append(0)
+        else:
+            labels.append(1)
+
+    # Converts a class vector (integers) to binary class matrix
+    Y = torch.eye(num_classes)
+    Y = Y[labels].numpy()
+
+    return Y
