@@ -22,7 +22,7 @@ if __name__ == '__main__':
     model = YOLO(opt.cfg, opt.data, opt.names, opt.weights, opt.imgsz, device = False)
 
     # Extracts all feature maps from all layers of the network for each image in the dataset
-    feature_maps, conv_maps, labels = get_feature_maps(model, data, img_size = 416, subset = 'train', route = False, debug = -1)
+    feature_maps, conv_maps, labels = get_feature_maps(model, opt.data, img_size = opt.imgsz, subset = 'train', route = False, debug = -1)
 
     if len(feature_maps) == len(conv_maps):
         print('Number of images:', len(feature_maps))
