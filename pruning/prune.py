@@ -406,7 +406,7 @@ def filter_representation(model, data, img_size, pool_type = 'max', subset = 'tr
     dataset = LoadImagesAndLabels(path = path, img_size = img_size, rect = True, single_cls = False)
 
     # Get convolutional feature maps for each image
-    for i in tqdm.tqdm(range(len(dataset))):
+    for i in tqdm(range(len(dataset)), desc = 'Extracting features from activation maps'):
 
         # Image pre-processing
         img0, _, _ = load_image(dataset, i)
