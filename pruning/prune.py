@@ -1,6 +1,7 @@
 import torch
 import random
 import pandas as pd
+from tqdm import tqdm
 from utils.utils import *
 from utils.parse_config import *
 from torch.utils.data import DataLoader
@@ -354,20 +355,49 @@ def random_pruning(model, rate, seed = 42):
 
     return model
 
-def get_feature_maps(model, data, img_size, subset = 'valid', route = False, debug = -1):
+def feature_extraction(conv_map, pool_type = 'max'):
 
-    """ Extracts all feature maps from all layers of the network for each image in the dataset. """    
+    """ Represents the output of the filters that compose the network as feature vectors for a single image. """
 
-    feature_maps = list()
-    conv_maps = list()
+    if pool_type.lower() == 'avg':
+        global_pool = torch.nn.AdaptiveAvgPool2d(output_size = (1, 1))
+    else:
+        global_pool = torch.nn.AdaptiveMaxPool2d(output_size = (1, 1))
 
+    # Representation of the filters
+    features = list()
+
+    # For each convolutional layer
+    for l in range(len(conv_map)):
+
+        # For each batch
+        for b in range(len(conv_map[l])):
+    
+            n_filters = len(conv_map[l][b])
+
+            # For each filter
+            for f in range(n_filters):
+
+                feature = global_pool(conv_map[l][b][f].unsqueeze(0))
+                features.append(float(feature))
+
+    return features
+
+def filter_representation(model, data, img_size, pool_type = 'max', subset = 'train', route = False):
+
+    """ Extract features from all convolutional maps for each image in the subset. """
+
+    # Initializing activation map lists
+    inputs = list()
     conv_i = list()
     out_i = list()
     yolo_out_i = list()
 
+    # Initializing the model
     device = torch_utils.select_device()
     model = model.to(device)
 
+    # Prunable block indexes
     blocks = to_prune(model)
 
     # Load dataset images
@@ -375,13 +405,8 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
     path = data[subset]
     dataset = LoadImagesAndLabels(path = path, img_size = img_size, rect = True, single_cls = False)
 
-    if debug != -1:
-        samples = debug
-    else:
-        samples = len(dataset)
-
-    # For each image
-    for i in range(samples):
+    # Get convolutional feature maps for each image
+    for i in tqdm.tqdm(range(len(dataset))):
 
         # Image pre-processing
         img0, _, _ = load_image(dataset, i)
@@ -390,6 +415,7 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
         x = torch.from_numpy(img)
         # Normalization
         x = x.to(device).float() / 255.0
+        x = x.float() / 255.0
         x = x.unsqueeze(1)
         x = x.permute(1, 3, 2, 0)
 
@@ -439,49 +465,18 @@ def get_feature_maps(model, data, img_size, subset = 'valid', route = False, deb
                 out_i.append(x if model.routs[j] else [])
             else:
                 out_i.append(x)
+
+        # Feature extraction
+        features = feature_extraction(conv_i, pool_type = pool_type)
+        inputs.append(features)
             
-        # Feature maps of image i
-        feature_maps.append(list(out_i))
-        conv_maps.append(list(conv_i))
+        # Clearing GPU Memory
         conv_i.clear()
         out_i.clear()
         yolo_out_i.clear()
+        del x, img0, img
 
-    return feature_maps, conv_maps, dataset.labels
-
-def filter_representation(conv_maps, pool_type = 'max'):
-
-    """ Represents the output of the filters that compose the network as feature vectors for each image. """
-
-    if pool_type.lower() == 'avg':
-        global_pool = torch.nn.AdaptiveAvgPool2d(output_size = (1))
-    else:
-        global_pool = torch.nn.AdaptiveMaxPool2d(output_size = (1))
-
-    # Representation of the filters
-    X = list()
-
-    # Number of images
-    n_images = len(conv_maps)
-
-    # For each image
-    for i in range(len(conv_maps)):
-
-        # For each convolutional layer
-        for c in range(len(conv_maps[i])):
-
-          # For each batch
-          for b in range(len(conv_maps[i][c])):
-              
-              # For each filter
-              for f in range (len(conv_maps[i][c][b])):
-
-                  feature = global_pool(conv_maps[i][c][b][f].unsqueeze(0))
-                  X.append(float(feature))
-
-    X = np.array(X).reshape((n_images, int(len(X)/n_images)))
-
-    return X
+    return inputs, dataset.labels
 
 def class_label_matrix(labels, num_classes = 2):
 
