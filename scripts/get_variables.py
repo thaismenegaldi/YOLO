@@ -28,6 +28,7 @@ if __name__ == '__main__':
     # Reshape input variables (filters x images)
     X = np.array(inputs).reshape((len(inputs[0]), len(inputs)))
 
+    # Saving matrix X
     with open(filename, 'wb') as f:
         np.save(f, X)
 
@@ -40,5 +41,6 @@ if __name__ == '__main__':
     Y = class_label_matrix(labels, num_classes = 2)
     print('Shape of output variables:', Y.shape)
 
+    # Saving matrix Y
     with open(filename, 'wb') as f:
         np.save(f, Y)
