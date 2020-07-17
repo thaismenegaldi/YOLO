@@ -12,9 +12,12 @@ if __name__ == '__main__':
     parser.add_argument('--names', type=str, help='*.names path')
     parser.add_argument('--weights', type=str, help='*.weights path')
     parser.add_argument('--imgsz', type=int, default=416, help='image size')
-    parser.add_argument('--pool-type', type = str, default='max', help = 'filter representation')
+    parser.add_argument('--pool-type', type = str, default='max', help = 'pooling operation')
 
     opt = parser.parse_args()
+
+    # Output filename
+    filename = 'variables_' + opt.pool_type + '.npy'
 
     # Initialize model
     model = YOLO(opt.cfg, opt.data, opt.names, opt.weights, opt.imgsz)
@@ -25,6 +28,9 @@ if __name__ == '__main__':
     # Reshape input variables (filters x images)
     X = np.array(inputs).reshape((len(inputs[0]), len(inputs)))
 
+    with open(filename, 'wb') as f:
+        np.save(f, X)
+
     print('Number of images:', X.shape[1])
     print('Number of filters per image:', X.shape[0])
 
@@ -34,7 +40,5 @@ if __name__ == '__main__':
     Y = class_label_matrix(labels, num_classes = 2)
     print('Shape of output variables:', Y.shape)
 
-    filename = 'variables_' + opt.pool_type + '.npy'
     with open(filename, 'wb') as f:
-        np.save(f, X)
         np.save(f, Y)
