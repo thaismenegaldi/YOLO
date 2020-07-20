@@ -333,7 +333,10 @@ def random_pruning(model, rate, seed = 42):
 
     """ Random pruning of convolutional filters in the model. """
 
-    print('Random pruning with seed %d\n' % (seed))
+    if seed != -1:
+        print('Random pruning with seed %d\n' % (seed))
+    else:
+        print('Random pruning without seed\n')
 
     blocks = to_prune(model)
 
@@ -345,7 +348,8 @@ def random_pruning(model, rate, seed = 42):
 
     for i in range(len(blocks)):
 
-        random.seed(seed)
+        if seed != -1:
+            random.seed(seed)
         filters = -np.sort(-np.array(random.sample(range(model.module_list[blocks[i]][0].out_channels), n_filters[i])))
 
         for filter in filters:
