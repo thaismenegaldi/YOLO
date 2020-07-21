@@ -18,6 +18,8 @@ if __name__ == '__main__':
 
     # Output filename
     filename = 'variables_' + opt.pool_type + '.npy'
+    # Open file with wb mode
+    f = open(filename, 'wb')
 
     # Initialize model
     model = YOLO(opt.cfg, opt.data, opt.names, opt.weights, opt.imgsz)
@@ -29,7 +31,6 @@ if __name__ == '__main__':
     X = np.array(inputs).reshape((len(inputs[0]), len(inputs)))
 
     # Saving matrix X
-    f = open(filename, 'wb')
     np.save(f, X)
 
     print('Number of images:', X.shape[1])
