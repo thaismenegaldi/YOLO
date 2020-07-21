@@ -42,5 +42,4 @@ if __name__ == '__main__':
     print('Shape of output variables:', Y.shape)
 
     # Saving matrix Y
-    with open(filename, 'wb') as f:
-        np.save(f, Y)
+    np.save(f, Y)
