@@ -29,8 +29,8 @@ if __name__ == '__main__':
     X = np.array(inputs).reshape((len(inputs[0]), len(inputs)))
 
     # Saving matrix X
-    with open(filename, 'wb') as f:
-        np.save(f, X)
+    f = open(filename, 'wb')
+    np.save(f, X)
 
     print('Number of images:', X.shape[1])
     print('Number of filters per image:', X.shape[0])
