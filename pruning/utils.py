@@ -167,6 +167,7 @@ def view(model, block, filter, verbose = False):
         pass
 
 def model_to_cfg(model, 
+                 version = 3,
                  cfg = 'dfire.cfg',
                  mode = 'train',
                  img_size = (416, 416, 3), 
@@ -266,6 +267,12 @@ def model_to_cfg(model,
                 file.write('filters = %d\n' % (block['filters']))
                 file.write('activation = %s\n\n' % (block['activation']))
 
+        elif block['type'] == 'maxpool':
+            
+            file.write('[%s]\n' % (block['type']))
+            file.write('size = %d\n' % (block['size']))
+            file.write('stride = %d\n' % (block['stride']))
+
         elif block['type'] == 'shortcut':
 
             file.write('[%s]\n' % (block['type']))
@@ -293,7 +300,30 @@ def model_to_cfg(model,
             file.write('jitter = %s\n' % (block['jitter']))
             file.write('ignore_thresh = %s\n' % (block['ignore_thresh']))
             file.write('truth_thresh = %d\n' % (block['truth_thresh']))
-            file.write('random = %d\n\n' % (block['random']))
+
+            # YOLOv3 and variations
+            if version == 3:
+                file.write('random = %d\n\n' % (block['random']))
+
+            # YOLOv4 and variations
+            elif version == 4:
+                # Only on the last layer
+                try:
+                    file.write('random = %d\n\n' % (block['random']))
+                except:
+                    pass
+                file.write('scale_x_y = %d\n' % (block['scale_x_y']))
+                file.write('iou_thresh = %d\n' % (block['iou_thresh']))
+                file.write('cls_normalizer = %d\n' % (block['cls_normalizer']))
+                file.write('iou_normalizer = %d\n' % (block['iou_normalizer']))
+                file.write('iou_loss = %d\n' % (block['iou_loss']))
+                file.write('nms_kind = %d\n' % (block['nms_kind']))
+                file.write('beta_nms = %d\n' % (block['beta_nms']))
+                file.write('max_delta = %d\n' % (block['max_delta']))
+            
+            # Other models
+            else:
+                print('This model is currently not supported. Try version = 3 or version = 4.')
 
         elif block['type'] == 'upsample':
 
@@ -302,6 +332,6 @@ def model_to_cfg(model,
 
         else:
           
-            print('The block %s was not registered\n' % (block['type']))
+            print('The block %s was not registered.\n' % (block['type']))
 
     file.close()
