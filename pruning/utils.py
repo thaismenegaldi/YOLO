@@ -312,14 +312,14 @@ def model_to_cfg(model,
                     file.write('random = %d\n\n' % (block['random']))
                 except:
                     pass
-                file.write('scale_x_y = %d\n' % (block['scale_x_y']))
-                file.write('iou_thresh = %d\n' % (block['iou_thresh']))
-                file.write('cls_normalizer = %d\n' % (block['cls_normalizer']))
-                file.write('iou_normalizer = %d\n' % (block['iou_normalizer']))
-                file.write('iou_loss = %d\n' % (block['iou_loss']))
-                file.write('nms_kind = %d\n' % (block['nms_kind']))
-                file.write('beta_nms = %d\n' % (block['beta_nms']))
-                file.write('max_delta = %d\n' % (block['max_delta']))
+                file.write('scale_x_y = %s\n' % (block['scale_x_y']))
+                file.write('iou_thresh = %s\n' % (block['iou_thresh']))
+                file.write('cls_normalizer = %s\n' % (block['cls_normalizer']))
+                file.write('iou_normalizer = %s\n' % (block['iou_normalizer']))
+                file.write('iou_loss = %s\n' % (block['iou_loss']))
+                file.write('nms_kind = %s\n' % (block['nms_kind']))
+                file.write('beta_nms = %s\n' % (block['beta_nms']))
+                file.write('max_delta = 5\n')
             
             # Other models
             else:
