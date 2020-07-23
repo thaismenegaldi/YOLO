@@ -185,7 +185,8 @@ def model_to_cfg(model,
                  saturation = 1.5,
                  exposure = 1.5,
                  hue = .1,
-                 mosaic = 1):
+                 mosaic = 1,
+                 max_delta = -1):
 
     """ Converts the PyTorch model to a Darknet .cfg file. """
 
@@ -271,7 +272,7 @@ def model_to_cfg(model,
             
             file.write('[%s]\n' % (block['type']))
             file.write('size = %d\n' % (block['size']))
-            file.write('stride = %d\n' % (block['stride']))
+            file.write('stride = %d\n\n' % (block['stride']))
 
         elif block['type'] == 'shortcut':
 
@@ -309,7 +310,7 @@ def model_to_cfg(model,
             elif version == 4:
                 # Only on the last layer
                 try:
-                    file.write('random = %d\n\n' % (block['random']))
+                    file.write('random = %d\n' % (block['random']))
                 except:
                     pass
                 file.write('scale_x_y = %s\n' % (block['scale_x_y']))
@@ -319,8 +320,11 @@ def model_to_cfg(model,
                 file.write('iou_loss = %s\n' % (block['iou_loss']))
                 file.write('nms_kind = %s\n' % (block['nms_kind']))
                 file.write('beta_nms = %s\n' % (block['beta_nms']))
-                file.write('max_delta = 5\n')
-            
+                if max_delta != -1:
+                    file.write('max_delta = %d\n\n' % (max_delta))
+                else:
+                    file.write('\n')
+
             # Other models
             else:
                 print('This model is currently not supported. Try version = 3 or version = 4.')
