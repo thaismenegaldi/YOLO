@@ -298,7 +298,7 @@ def compute_vip(model):
 
     return VIP
 
-def pls_vip(X, Y, c):
+def pls_vip(model, X, Y, c):
 
     """ Computes the importance of convolutional filters based on PLS-VIP method.
         Paper: Pruning Deep Networks using Partial Least Squares (https://arxiv.org/pdf/1810.07610.pdf) """
