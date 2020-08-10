@@ -280,13 +280,14 @@ def compute_vip(model):
 
     # Matrices
     W = model.x_weights_
+    P = model.x_loadings_
     T = model.x_scores_
     Q = model.y_loadings_
 
-    # Number of features and number of observations
-    p, n = X.shape
-    # Number of components
-    _, c = T.shape
+    # Number of features and number of components
+    p, c = P.shape
+    # Number of observations
+    n, _ = T.shape
 
     # Variable Importance in Projection (VIP)
     VIP = np.zeros((p,))
