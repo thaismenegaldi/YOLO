@@ -327,10 +327,9 @@ def pls_vip(model, X, Y, c):
         VIPs.append(VIP[start:end])
 
         for filter in range(len(VIPs[block])):
-            importances.append([block, filter, VIPs[block][filter]])
+            importances.append([blocks[block], filter, VIPs[block][filter]])
 
-    return importances   
-    
+    return importances    
 
 def per_layer(model, rate):
 
