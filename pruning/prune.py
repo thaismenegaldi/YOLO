@@ -314,6 +314,12 @@ def pls_vip(X, Y, c):
     VIPs = list()
     importances = list()
 
+    # Filters per layer
+    blocks = to_prune(model)
+    n_filters = list()
+    for block in blocks:
+        n_filters.append(int(model.module_list[block][0].out_channels))
+
     for block in range(len(blocks)):
 
         start = sum(n_filters[:block])
