@@ -306,7 +306,7 @@ def model_to_cfg(model,
             if version == 3:
                 file.write('random = %d\n\n' % (block['random']))
 
-            # YOLOv4 and variations
+            # YOLOv4 and variations (doesn't work yet)
             elif version == 4:
                 # Only on the last layer
                 try:

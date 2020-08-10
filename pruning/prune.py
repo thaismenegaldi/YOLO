@@ -310,15 +310,15 @@ def pls_vip(model, X, Y, c):
     # Variable Importance in Projection (VIP) for each feature
     VIP = compute_vip(PLS)
 
-    # Importances per layer
-    VIPs = list()
-    importances = list()
-
     # Filters per layer
     blocks = to_prune(model)
     n_filters = list()
     for block in blocks:
         n_filters.append(int(model.module_list[block][0].out_channels))
+
+    # Importances per layer
+    VIPs = list()
+    importances = list()
 
     for block in range(len(blocks)):
 
@@ -379,7 +379,7 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
         importances = norm(model, order = rank)
         selected = select_filters(importances, n_filters, ascending = True)
     elif rank.upper() == 'PLS-VIP':
-        importances = pls_vip(X, Y, c)
+        importances = pls_vip(model, X, Y, c)
         selected = select_filters(importances, n_filters, ascending = True)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP.' % (rank))
