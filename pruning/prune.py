@@ -6,6 +6,7 @@ from utils.utils import *
 from utils.parse_config import *
 from torch.utils.data import DataLoader
 from utils.datasets import *
+from sklearn.cross_decomposition import PLSRegression
 
 def to_prune(model):
 
@@ -272,6 +273,59 @@ def norm(model, order = 'L2'):
 
     return importances
 
+def compute_vip(model):
+
+    """ Calculates Variable Importance in Projection (VIP) from PLSRegression model. 
+        (https://github.com/scikit-learn/scikit-learn/issues/7050) """
+
+    # Matrices
+    W = PLS.x_weights_
+    T = PLS.x_scores_
+    Q = PLS.y_loadings_
+
+    # Number of features and number of observations
+    p, n = X.shape
+    # Number of components
+    _, c = T.shape
+
+    # Variable Importance in Projection (VIP)
+    VIP = np.zeros((p,))
+    S = np.diag(T.T @ T @ Q.T @ Q).reshape(c, -1)
+    S_cum = np.sum(S)
+    for i in range(p):
+        weight = np.array([(W[i,j] / np.linalg.norm(W[:,j]))**2 for j in range(c)])
+        VIP[i] = np.sqrt(p*(S.T @ weight)/S_cum)
+
+    return VIP
+
+def pls_vip(X, Y, c):
+
+    """ Computes the importance of convolutional filters based on PLS-VIP method.
+        Paper: Pruning Deep Networks using Partial Least Squares (https://arxiv.org/pdf/1810.07610.pdf) """
+
+    # Project high dimensional space onto a low dimensional space (latent space)
+    PLS = PLSRegression(n_components = c)
+    PLS.fit(X.T, Y)
+
+    # Variable Importance in Projection (VIP) for each feature
+    VIP = compute_vip(PLS)
+
+    # Importances per layer
+    VIPs = list()
+    importances = list()
+
+    for block in range(len(blocks)):
+
+        start = sum(n_filters[:block])
+        end = sum(n_filters[:block+1])
+        VIPs.append(VIP[start:end])
+
+        for filter in range(len(VIPs[block])):
+            importances.append([block, filter, VIPs[block][filter]])
+
+    return importances   
+    
+
 def per_layer(model, rate):
 
     """ Calculates the number of filters that will be removed in each layer. """
@@ -304,7 +358,7 @@ def select_filters(importances, n_filters, ascending = True):
     # Returns tuple with less important filters
     return list(selected.to_records(index=False))
 
-def ranked_pruning(model, rate, rank):
+def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
 
     """ Criteria-based pruning of convolutional filters in the model. """
   
@@ -318,8 +372,11 @@ def ranked_pruning(model, rate, rank):
     if rank.upper() in norms:
         importances = norm(model, order = rank)
         selected = select_filters(importances, n_filters, ascending = True)
+    elif rank.upper() == 'PLS-VIP':
+        importances = pls_vip(X, Y, c)
+        selected = select_filters(importances, n_filters, ascending = True)
     else:
-      raise AssertionError('The rank %s does not exist. Try L0, L1, L2 or L-Inf.' % (rank))
+      raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP.' % (rank))
 
     for i in range(len(selected)):
         block, filter, importance = selected[i]
