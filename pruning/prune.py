@@ -279,9 +279,9 @@ def compute_vip(model):
         (https://github.com/scikit-learn/scikit-learn/issues/7050) """
 
     # Matrices
-    W = PLS.x_weights_
-    T = PLS.x_scores_
-    Q = PLS.y_loadings_
+    W = model.x_weights_
+    T = model.x_scores_
+    Q = model.y_loadings_
 
     # Number of features and number of observations
     p, n = X.shape
