@@ -22,7 +22,6 @@ def to_prune(model):
                 # It must be a sequential block containing "Conv2d + BatchNorm2d + LeakyReLU" and that does not precede a YOLO layer
                 if str(block).split('(')[0] == 'Conv2d' and i+1 not in model.yolo_layers and next_block == 'Sequential': #and len(model.module_list[i+1]) > 1:
                     blocks.append(i)
-
         except:
             pass
 
@@ -304,7 +303,7 @@ def pls_vip(model, X, Y, c):
         Paper: Pruning Deep Networks using Partial Least Squares (https://arxiv.org/pdf/1810.07610.pdf) """
 
     # Project high dimensional space onto a low dimensional space (latent space)
-    PLS = PLSRegression(n_components = c)
+    PLS = PLSRegression(n_components = c, scale = True)
     PLS.fit(X.T, Y)
 
     # Variable Importance in Projection (VIP) for each feature
@@ -343,22 +342,37 @@ def per_layer(model, rate):
         
     return n_filters
 
-def select_filters(importances, n_filters, ascending = True):
+def select_filters(importances, mode = 'layer', ascending = True):
 
     """ Select the filters to be removed based on their respective importance. """ 
 
+    # Importances as a dataframe
     importances = pd.DataFrame(importances, columns = ['Block', 'Filter', 'Importance'])
     # Sorting importances
     importances = importances.sort_values(by = 'Importance', ascending = ascending)    
 
+    # Selected filters
     selected = list()
-    # Selecting the filters for each layer that will be pruned
-    blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
-    if len(blocks) != len(n_filters):
-        raise AssertionError('%d != %d\n' % (len(blocks), len(n_filters)))
-    for i in range(len(blocks)):
-        selected.append(importances.query('Block == @blocks[@i]')[:n_filters[i]].sort_values(by = 'Filter', ascending = False))
-    selected = pd.concat(selected)
+
+    if mode == 'layer':
+
+        # Number of filters per layer to be removed
+        n_filters = per_layer(model, rate)
+
+        # Selecting the filters for each layer that will be pruned
+        blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
+
+        if len(blocks) != len(n_filters):
+            raise AssertionError('%d != %d\n' % (len(blocks), len(n_filters)))
+        for i in range(len(blocks)):
+            selected.append(importances.query('Block == @blocks[@i]')[:n_filters[i]].sort_values(by = 'Filter', ascending = False))
+        selected = pd.concat(selected)
+
+    else:
+        
+        # Total number of filters to be removed
+        n_filters = int(len(importances))
+        selected = importances.head(n_filters)
 
     # Returns tuple with less important filters
     return list(selected.to_records(index=False))
@@ -367,19 +381,14 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
 
     """ Criteria-based pruning of convolutional filters in the model. """
   
-    norms = ['L0', 'L1', 'L2', 'L-INF']
-
     print('Criteria-based pruning %s\n' % (rank.upper()))
 
-    # Number of filters per layer to be removed
-    n_filters = per_layer(model, rate)
-
-    if rank.upper() in norms:
+    if rank.upper() in ['L0', 'L1', 'L2', 'L-INF']:
         importances = norm(model, order = rank)
-        selected = select_filters(importances, n_filters, ascending = True)
+        selected = select_filters(importances, mode = 'layer', ascending = True)
     elif rank.upper() == 'PLS-VIP':
         importances = pls_vip(model, X, Y, c)
-        selected = select_filters(importances, n_filters, ascending = True)
+        selected = select_filters(importances, mode = 'network', ascending = True)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP.' % (rank))
 
