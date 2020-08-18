@@ -403,7 +403,7 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
     if rank.upper() in ['L0', 'L1', 'L2', 'L-INF']:
         importances = norm(model, order = rank)
         selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
-    elif rank.upper() == 'PLS-VIP-Single':
+    elif rank.upper() == 'PLS-VIP-SINGLE':
         importances = pls_vip_single(model, X, Y, c)
         selected = select_filters(model, rate, importances, mode = 'network', ascending = True)
     else:
