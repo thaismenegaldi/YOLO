@@ -371,7 +371,7 @@ def select_filters(model, rate, importances, mode = 'layer', ascending = True):
     else:
         
         # Total number of filters to be removed
-        total_filters = int(len(importances))
+        total_filters = int(len(importances)*rate)
         selected = importances.head(total_filters).sort_values(by = 'Filter', ascending = False)
 
         # Checking if all filters at some layer were selected to be removed
