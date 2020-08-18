@@ -297,10 +297,10 @@ def compute_vip(model):
 
     return VIP
 
-def pls_vip(model, X, Y, c):
+def pls_vip_single(model, X, Y, c):
 
-    """ Computes the importance of convolutional filters based on PLS-VIP method.
-        Paper: Pruning Deep Networks using Partial Least Squares (https://arxiv.org/pdf/1810.07610.pdf) """
+    """ Single projection scheme. A single PLS model is learned considering all filters that compose the network at once.
+        Paper: Deep Network Compression Based on Partial Least Squares (https://www.sciencedirect.com/science/article/abs/pii/S0925231220305762) """
 
     # Project high dimensional space onto a low dimensional space (latent space)
     PLS = PLSRegression(n_components = c, scale = True)
@@ -342,7 +342,7 @@ def per_layer(model, rate):
         
     return n_filters
 
-def select_filters(importances, mode = 'layer', ascending = True):
+def select_filters(model, rate, importances, mode = 'layer', ascending = True):
 
     """ Select the filters to be removed based on their respective importance. """ 
 
@@ -357,7 +357,7 @@ def select_filters(importances, mode = 'layer', ascending = True):
     if mode == 'layer':
 
         # Number of filters per layer to be removed
-        n_filters = per_layer(model, rate)
+        n_filters = per_layer(model, rate = rate)
 
         # Selecting the filters for each layer that will be pruned
         blocks = list(importances['Block'].drop_duplicates().sort_values(ascending = True))
@@ -371,8 +371,25 @@ def select_filters(importances, mode = 'layer', ascending = True):
     else:
         
         # Total number of filters to be removed
-        n_filters = int(len(importances))
-        selected = importances.head(n_filters)
+        total_filters = int(len(importances))
+        selected = importances.head(total_filters).sort_values(by = 'Filter', ascending = False)
+
+        # Checking if all filters at some layer were selected to be removed
+        will_be_pruned = dict(selected['Block'].value_counts())
+        # Possible pruning blocks
+        blocks = to_prune(model)
+        # Number of filters per layer
+        n_filters = per_layer(model, rate = 1.0)
+        # Blocks that will have all filters pruned
+        ignored = list()
+
+        for key, value in will_be_pruned.items():
+            if n_filters[blocks.index(key)] == will_be_pruned[key]:
+                print('Warning: All filters at block [{}] were selected to be removed'.format(key))
+                ignored.append(key)
+
+        # Blocks that should have all filters pruned will not be pruned anymore
+        selected = selected.query('Block not in @ignored')
 
     # Returns tuple with less important filters
     return list(selected.to_records(index=False))
@@ -385,12 +402,12 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
 
     if rank.upper() in ['L0', 'L1', 'L2', 'L-INF']:
         importances = norm(model, order = rank)
-        selected = select_filters(importances, mode = 'layer', ascending = True)
-    elif rank.upper() == 'PLS-VIP':
-        importances = pls_vip(model, X, Y, c)
-        selected = select_filters(importances, mode = 'network', ascending = True)
+        selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
+    elif rank.upper() == 'PLS-VIP-Single':
+        importances = pls_vip_single(model, X, Y, c)
+        selected = select_filters(model, rate, importances, mode = 'network', ascending = True)
     else:
-      raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP.' % (rank))
+      raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP-Single.' % (rank))
 
     for i in range(len(selected)):
         block, filter, importance = selected[i]
