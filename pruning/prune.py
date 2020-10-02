@@ -331,7 +331,7 @@ def pls_vip_single(model, X, Y, c):
 
     return importances
 
-def plt_vip_multi(model, X, Y, c):
+def pls_vip_multi(model, X, Y, c):
 
     """ Multiple projections scheme. In this strategy, one PLS model is learned considering filters layer-by-layer. 
         Based on paper Deep Network Compression Based on Partial Least Squares (https://www.sciencedirect.com/science/article/abs/pii/S0925231220305762)""" 
