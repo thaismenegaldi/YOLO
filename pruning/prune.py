@@ -300,7 +300,7 @@ def compute_vip(model):
 def pls_vip_single(model, X, Y, c):
 
     """ Single projection scheme. A single PLS model is learned considering all filters that compose the network at once.
-        Paper: Deep Network Compression Based on Partial Least Squares (https://www.sciencedirect.com/science/article/abs/pii/S0925231220305762) """
+        Based on paper Deep Network Compression Based on Partial Least Squares (https://www.sciencedirect.com/science/article/abs/pii/S0925231220305762) """
 
     # Project high dimensional space onto a low dimensional space (latent space)
     PLS = PLSRegression(n_components = c, scale = True)
@@ -317,6 +317,7 @@ def pls_vip_single(model, X, Y, c):
 
     # Importances per layer
     VIPs = list()
+    # Struct (Block/Filter/Importance)
     importances = list()
 
     for block in range(len(blocks)):
@@ -328,7 +329,48 @@ def pls_vip_single(model, X, Y, c):
         for filter in range(len(VIPs[block])):
             importances.append([blocks[block], filter, VIPs[block][filter]])
 
-    return importances    
+    return importances
+
+def plt_vip_multi(model, X, Y, c):
+
+    """ Multiple projections scheme. In this strategy, one PLS model is learned considering filters layer-by-layer. 
+        Based on paper Deep Network Compression Based on Partial Least Squares (https://www.sciencedirect.com/science/article/abs/pii/S0925231220305762)""" 
+
+    # Filters per layer
+    blocks = to_prune(model)
+    n_filters = list()
+    for block in blocks:
+        n_filters.append(int(model.module_list[block][0].out_channels))
+
+    # Struct (Block/Filter/Importance)
+    importances = list()
+
+    for block in range(len(blocks)):
+
+        # Separating input variable X by layer
+        start = sum(n_filters[:block])
+        end = sum(n_filters[:block+1])
+        X_l = X[start:end]
+
+        # Project high dimensional space onto a low dimensional space (latent space)
+        PLS = PLSRegression(n_components = c, scale = True)
+        PLS.fit(X_l.T, Y)
+
+        # Variable Importance in Projection (VIP) for each feature of the current layer
+        VIP_l = compute_vip(PLS)
+
+        # Concatenating (Block/Filter/VIP)
+        importances.append(np.column_stack([[blocks[block]]*n_filters[block], np.arange(n_filters[block]), VIP_l]))
+
+        # Deleting current PLS model
+        del PLS
+
+    # Converting to list
+    importances = pd.DataFrame(np.vstack(importances))
+    importances[[0, 1]] = importances[[0, 1]].astype(int)
+    importances = importances.to_records(index=False).tolist()
+
+    return importances
 
 def per_layer(model, rate):
 
@@ -406,6 +448,9 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
     elif rank.upper() == 'PLS-VIP-SINGLE':
         importances = pls_vip_single(model, X, Y, c)
         selected = select_filters(model, rate, importances, mode = 'network', ascending = True)
+    elif rank.upper() == 'PLS-VIP-MULTI':
+        importances = pls_vip_multi(model, X, Y, c)
+        selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP-Single.' % (rank))
 
