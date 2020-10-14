@@ -376,6 +376,12 @@ def cca_multi(model, X, Y, c = 1):
 
     """ Multiple projections scheme. In this strategy, one CCA model is learned considering filters layer-by-layer. """
 
+    # Filters per layer
+    blocks = to_prune(model)
+    n_filters = list()
+    for block in blocks:
+        n_filters.append(int(model.module_list[block][0].out_channels))
+
     # Struct (Block/Filter/Importance)
     importances = list()
 
