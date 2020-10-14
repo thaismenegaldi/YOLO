@@ -6,6 +6,7 @@ from utils.utils import *
 from utils.parse_config import *
 from torch.utils.data import DataLoader
 from utils.datasets import *
+from sklearn.cross_decomposition import CCA
 from sklearn.cross_decomposition import PLSRegression
 
 def to_prune(model):
