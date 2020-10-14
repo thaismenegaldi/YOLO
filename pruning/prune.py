@@ -411,6 +411,8 @@ def cca_multi(model, X, Y, c = 1):
     importances[[0, 1]] = importances[[0, 1]].astype(int)
     importances = importances.to_records(index=False).tolist()
 
+    return importances
+
 def per_layer(model, rate):
 
     """ Calculates the number of filters that will be removed in each layer. """
