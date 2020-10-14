@@ -372,6 +372,38 @@ def pls_vip_multi(model, X, Y, c):
 
     return importances
 
+def cca_multi(model, X, Y, c = 1):
+
+    """ Multiple projections scheme. In this strategy, one CCA model is learned considering filters layer-by-layer. """
+
+    # Struct (Block/Filter/Importance)
+    importances = list()
+
+    for block in range(len(blocks)):
+
+        # Separating input variable X by layer
+        start = sum(n_filters[:block])
+        end = sum(n_filters[:block+1])
+        X_l = X[start:end]
+
+        # Project high dimensional space onto a low dimensional space (latent space)
+        cca = CCA(n_components = c, scale = True, max_iter = 1)
+        cca.fit(X_l.T, Y)
+
+        # Projection matrix of the current layer
+        W_l = cca.x_weights_
+
+        # Concatenating (Block/Filter/Importance)
+        importances.append(np.column_stack([[blocks[block]]*n_filters[block], np.arange(n_filters[block]), abs(W_l)]))
+
+        # Deleting current CCA model
+        del cca
+
+    # Converting to list
+    importances = pd.DataFrame(np.vstack(importances))
+    importances[[0, 1]] = importances[[0, 1]].astype(int)
+    importances = importances.to_records(index=False).tolist()
+
 def per_layer(model, rate):
 
     """ Calculates the number of filters that will be removed in each layer. """
@@ -450,6 +482,9 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
         selected = select_filters(model, rate, importances, mode = 'network', ascending = True)
     elif rank.upper() == 'PLS-VIP-MULTI':
         importances = pls_vip_multi(model, X, Y, c)
+        selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
+    elif rank.upper() == "CCA-MULTI":
+        importances = cca_multi(model, X, Y, c)
         selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
     else:
       raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP-Single.' % (rank))
