@@ -1,12 +1,12 @@
 #!/bin/bash
 
-if [ "$#" -ne 2 ]
+if [ "$#" -ne 3 ]
 then
-    echo "Wrong format: use ./create_folder.sh <pruning_technique> <pruning_rate>"
+    echo "Wrong format: use ./create_folder.sh <#iterations> <pruning_technique> <pruning_rate>"
     exit -1
 fi
 
-path=$1/$2
+path=$1/$2/$3
 
 if [ ! -e Standard/data/dfire_train.txt ]; then
     echo "Error: file train.txt does not exist"
@@ -29,10 +29,7 @@ elif [ ! -e Models/$path/dfire.cfg ]; then
 fi
 
 cd Fine-Tuning/
-mkdir -p $1/
-cd $1/
-mkdir $2/
-cd ..
+mkdir -p $path
 cd ..
 
 cp -r Standard/data Fine-Tuning/$path/
@@ -42,7 +39,7 @@ cp Models/$path/dfire.weights Fine-Tuning/$path/
 cp Models/$path/dfire.cfg Fine-Tuning/$path/
 
 cd Fine-Tuning/$path/
-mkdir weights
+mkdir -p weights
 
 chmod +x darknet
 
