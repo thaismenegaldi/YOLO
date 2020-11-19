@@ -83,6 +83,8 @@ def detect(save_img=False):
         # Logging object
         log = Log()
 
+    nframes = 0
+
     # Run inference
     t0 = time.time()
     img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
@@ -122,6 +124,7 @@ def detect(save_img=False):
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  #  normalization gain whwh
             if det is not None and len(det):
+                nframes += 1
                 # Rescale boxes from imgsz to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
@@ -217,6 +220,7 @@ def detect(save_img=False):
         print('Detections with area suppression:', np.sum(list(tracker.changed.values())))
         print('Inference time per frame (avg): %.3fs' % (np.mean(log.detection_time)))
 
+    print('Frames with detections:', nframes)
     print('Inference time (%.3fs)' % (time.time() - t0))
 
 
