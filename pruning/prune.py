@@ -560,7 +560,7 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
     elif rank.upper() == "CCA-MULTI":
         importances = cca_multi(model, X, Y, c)
         selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
-    elif rank.upper() == "PLS-LC":
+    elif rank.upper() == "PLS-LC-MULTI":
         importances = pls_lc_multi(model, X, Y)
         selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
     else:
