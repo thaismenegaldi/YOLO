@@ -560,8 +560,11 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
     elif rank.upper() == "CCA-MULTI":
         importances = cca_multi(model, X, Y, c)
         selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
+    elif rank.upper() == "PLS-LC":
+        importances = pls_lc(model, X, Y)
+        selected = select_filters(model, rate, importances, mode = 'layer', ascending = True)
     else:
-      raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf or PLS-VIP-Single.' % (rank))
+      raise AssertionError('The rank %s does not exist. Try L0, L1, L2, L-Inf, PLS-VIP-Single, PLS-VIP-Multi, CCA-Multi or PLS-LC.' % (rank))
 
     for i in range(len(selected)):
         block, filter, importance = selected[i]
