@@ -413,6 +413,71 @@ def cca_multi(model, X, Y, c = 1):
 
     return importances
 
+def pls_lc(model, X, Y):
+
+    """ Multiple projections scheme. In this strategy, one PLS model is learned considering filters layer-by-layer. 
+        Each projection matrix is linearly combined with convolutional filters to generate new ones. """
+    
+    # Filters per layer
+    blocks = to_prune(model)
+    n_filters = list()
+    for block in blocks:
+        n_filters.append(int(model.module_list[block][0].out_channels))
+
+    # Struct (Block/Filter/Importance)
+    importances = list()
+
+    for i, block in enumerate(blocks):
+
+        # Separating input variable X by layer
+        start = sum(n_filters[:i])
+        end = sum(n_filters[:i+1])
+        X_l = X[start:end]
+
+        # Number of components
+        c = X_l.shape[0]
+
+        # Project high dimensional space onto a low dimensional space (latent space)
+        PLS = PLSRegression(n_components = c, scale = True)
+        PLS.fit(X_l.T, Y)
+
+        # Filters of current layer
+        dim = model.module_list[block][0].weight.data.shape
+        filters = torch.zeros(dim)
+        # Dimension of weights
+        size = (dim[1], dim[2], dim[3])
+
+        print(i, PLS.x_weights_.shape)
+
+        # For each column of projection matrix
+        for j in range(PLS.x_weights_.shape[1]):
+            # Broadcasting
+            weights = [np.full(shape = size, fill_value = value) for value in PLS.x_weights_[:,j]]
+            # Stack (n_filters, n_output, kernel_size, kernel_size)
+            weights = torch.Tensor(np.stack(weights, axis = 0))
+            # Element-wise tensor multiplication
+            prod = torch.mul(weights, model.module_list[block][0].weight.data)
+            # Element-wise sum (n_output, kernel_size, kernel_size)
+            LC = torch.sum(prod, dim = 0)
+            filters[j] = LC
+
+        # Concatenating (Block/Filter/Importance)
+        importances.append(np.column_stack([[block]*n_filters[i], np.arange(n_filters[i]), np.flip(np.arange(n_filters[i]))]))
+
+        # Deleting current PLS model
+        del PLS
+
+        # Replace filters for linear combinations of the filters with the projection matrix
+        with torch.no_grad():
+            model.module_list[block][0].weight = torch.nn.Parameter(filters)
+
+    # Converting to list
+    importances = pd.DataFrame(np.vstack(importances))
+    importances[[0, 1]] = importances[[0, 1]].astype(int)
+    importances = importances.to_records(index=False).tolist()
+
+    return importances
+
 def per_layer(model, rate):
 
     """ Calculates the number of filters that will be removed in each layer. """
