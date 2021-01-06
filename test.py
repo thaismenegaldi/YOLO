@@ -21,11 +21,14 @@ def test(cfg,
          augment=False,
          model=None,
          dataloader=None,
+         device=None,
+         task='test',
          multi_label=True):
+
     # Initialize/load model and set device
     if model is None:
-        device = torch_utils.select_device(opt.device, batch_size=batch_size)
-        verbose = opt.task == 'test'
+        device = torch_utils.select_device(device, batch_size=batch_size)
+        verbose = task == 'test'
 
         # Remove previous
         for f in glob.glob('test_batch*.jpg'):
@@ -62,7 +65,7 @@ def test(cfg,
 
     # Dataloader
     if dataloader is None:
-        dataset = LoadImagesAndLabels(path, imgsz, batch_size, rect=True, single_cls=opt.single_cls)
+        dataset = LoadImagesAndLabels(path, imgsz, batch_size, rect=True, single_cls=single_cls)
         batch_size = min(batch_size, len(dataset))
         dataloader = DataLoader(dataset,
                                 batch_size=batch_size,
@@ -251,17 +254,22 @@ if __name__ == '__main__':
 
     # task = 'test', 'study', 'benchmark'
     if opt.task == 'test':  # (default) test normally
-        test(opt.cfg,
-             opt.data,
-             opt.weights,
-             opt.batch_size,
-             opt.img_size,
-             opt.conf_thres,
-             opt.iou_thres,
-             opt.pr_score,
-             opt.save_json,
-             opt.single_cls,
-             opt.augment)
+        test(cfg = opt.cfg,
+             data = opt.data,
+             weights = opt.weights,
+             batch_size = opt.batch_size,
+             imgsz = opt.img_size,
+             conf_thres = opt.conf_thres,
+             iou_thres = opt.iou_thres,
+             pr_score = opt.pr_score,
+             save_json = opt.save_json,
+             single_cls = opt.single_cls,
+             argument = opt.augment,
+             model = None,             
+             dataloader = None,
+             device = opt.device,
+             task = opt.task,
+             multi_label = True)
 
     elif opt.task == 'benchmark':  # mAPs at 256-640 at conf 0.5 and 0.7
         y = []
