@@ -264,7 +264,7 @@ if __name__ == '__main__':
              pr_score = opt.pr_score,
              save_json = opt.save_json,
              single_cls = opt.single_cls,
-             argument = opt.augment,
+             augment = opt.augment,
              model = None,             
              dataloader = None,
              device = opt.device,
