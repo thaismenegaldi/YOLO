@@ -1,5 +1,6 @@
 import torch
 import random
+import collections
 import pandas as pd
 from tqdm import tqdm
 from utils.utils import *
@@ -734,16 +735,38 @@ def class_label_matrix(labels, num_classes = 2):
     # Class label matrix
     Y = list()
 
-    for sample in range(len(labels)):
-        # False positive sample
-        if len(labels[sample]) == 0:
-            Y.append(0)
-        else:
-            Y.append(1)
+    # Modeling the object detection problem as a binary classification problem (none, detection)
+    if num_classes = 2:
 
-    # Converts a class vector (integers) to binary class matrix
+        for sample in range(len(labels)):
+            # None
+            if len(labels[sample]) == 0:
+                Y.append(0)
+            # Detection (smoke or fire or both)
+            else:
+                Y.append(1)
+
+    # Modeling the object detection problem as a multiclass classification problem (none, fire, smoke)
     if num_classes > 2:
-        Y = np.eye(num_classes, dtype = 'uint8')[Y]
+
+        for sample in range(len(labels)):
+            # None
+            if len(labels[sample]) == 0:
+                Y.append(0)
+            # Detection
+            else:
+                counter = collections.Counter(labels[sample][:,0])
+                # Number of smokes is greater than the number of fires
+                if counter[0] > counter[1]:
+                    Y.append(1)
+                # Number of fires is greater (or equal) than the number of smokes
+                else:
+                    Y.append(2)
+        
+        # Converts a class vector (integers) to binary class matrix
+        Y = np.eye(num_classes, dtype = 'int')[Y]
+    
+    # List to numpy array
     Y = np.array(Y)
 
     return Y

@@ -7,12 +7,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--cfg', type=str, help='*.cfg path')
-    parser.add_argument('--data', type=str, help='*.data path')
-    parser.add_argument('--names', type=str, help='*.names path')
-    parser.add_argument('--weights', type=str, help='*.weights path')
-    parser.add_argument('--imgsz', type=int, default=416, help='image size')
-    parser.add_argument('--pool-type', type = str, default='max', help = 'pooling operation')
+    parser.add_argument('--cfg', type = str, help = '*.cfg path')
+    parser.add_argument('--data', type = str, help = '*.data path')
+    parser.add_argument('--names', type = str, help = '*.names path')
+    parser.add_argument('--weights', type = str, help = '*.weights path')
+    parser.add_argument('--imgsz', type = int, default = 416, help = 'image size')
+    parser.add_argument('--num-classes', type = int, default = 2)
+    parser.add_argument('--pool-type', type = str, default = 'max', help = 'pooling operation')
 
     opt = parser.parse_args()
 
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     print('Shape of input variables:', X.shape)
 
     # Computes the class label matrix of the training data
-    Y = class_label_matrix(labels, num_classes = 2)
+    Y = class_label_matrix(labels, num_classes = opt.num_classes)
     print('Shape of output variables:', Y.shape)
 
     # Saving matrix Y
