@@ -609,12 +609,7 @@ def feature_extraction(conv_map, pool_type = 'max'):
 
     """ Represents the output of the filters that compose the network as feature vectors for a single image. """
 
-    if pool_type.lower() == 'avg':
-        global_pool = torch.nn.AdaptiveAvgPool2d(output_size = (1, 1))
-    else:
-        global_pool = torch.nn.AdaptiveMaxPool2d(output_size = (1, 1))
-
-    # Representation of the filters
+    # Features
     features = list()
 
     # For each convolutional layer
@@ -628,6 +623,13 @@ def feature_extraction(conv_map, pool_type = 'max'):
             # For each filter
             for f in range(n_filters):
 
+                # Global Average Pooling
+                if pool_type.lower() == 'avg':
+                    global_pool = torch.nn.AvgPool2d(kernel_size = conv_i[l][b][f].shape)
+                # Global Max Pooling
+                else:
+                    global_pool = torch.nn.MaxPool2d(kernel_size = conv_i[l][b][f].shape)
+                
                 feature = global_pool(conv_map[l][b][f].unsqueeze(0))
                 features.append(float(feature))
 
