@@ -625,10 +625,10 @@ def feature_extraction(conv_map, pool_type = 'max'):
 
                 # Global Average Pooling
                 if pool_type.lower() == 'avg':
-                    global_pool = torch.nn.AvgPool2d(kernel_size = conv_i[l][b][f].shape)
+                    global_pool = torch.nn.AvgPool2d(kernel_size = conv_map[l][b][f].shape)
                 # Global Max Pooling
                 else:
-                    global_pool = torch.nn.MaxPool2d(kernel_size = conv_i[l][b][f].shape)
+                    global_pool = torch.nn.MaxPool2d(kernel_size = conv_map[l][b][f].shape)
                 
                 feature = global_pool(conv_map[l][b][f].unsqueeze(0))
                 features.append(float(feature))
