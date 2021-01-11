@@ -2,14 +2,9 @@ import os
 import cv2
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--output', type = str, help = 'Output path.')
-parser.add_argument('--input', type = str, help = 'Input path.')
-parser.add_argument('--image', type = str, help = 'Image path.')
-opt = parser.parse_args()
-
-# Converts normalized coordinates in YOLO format to [xmin, ymin, xmax, ymax] format
 def deconvert(dim, coord_norm):
+
+    """ Converts normalized coordinates in YOLO format to [xmin, ymin, xmax, ymax] format. """
 
     # xmin = w_image * (xmin_norm - xmax_norm/2)
     xmin = dim[0] * (coord_norm[0] - coord_norm[2]/2)
@@ -21,6 +16,12 @@ def deconvert(dim, coord_norm):
     ymax = dim[1] * (coord_norm[3]/2 + coord_norm[1])
 
     return int(xmin), int(ymin), int(xmax), int(ymax)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--output', type = str, help = 'Output path.')
+parser.add_argument('--input', type = str, help = 'Input path.')
+parser.add_argument('--image', type = str, help = 'Image path.')
+opt = parser.parse_args()
 
 for subdir, dirs, files in os.walk(opt.input):
 
