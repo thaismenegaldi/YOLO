@@ -166,6 +166,21 @@ def view(model, block, filter, verbose = False):
     except:
         pass
 
+def deconvert(dim, coord_norm):
+
+    """ Converts normalized coordinates in YOLO format to [xmin, ymin, xmax, ymax] format """
+
+    # xmin = w_image * (xmin_norm - xmax_norm/2)
+    xmin = dim[0] * (coord_norm[0] - coord_norm[2]/2)
+    # xmax = w_image * (xmax_norm/2 + xmin_norm)
+    xmax = dim[0] * (coord_norm[2]/2 + coord_norm[0])
+    # ymin = h_image * (ymin_norm - ymax_norm/2)
+    ymin = dim[1] * (coord_norm[1] - coord_norm[3]/2)
+    # ymax = h_image * (ymax_norm/2 + ymin_norm)
+    ymax = dim[1] * (coord_norm[3]/2 + coord_norm[1])
+
+    return int(xmin), int(ymin), int(xmax), int(ymax)
+
 def model_to_cfg(model, 
                  version = 3,
                  cfg = 'dfire.cfg',
