@@ -168,7 +168,7 @@ def view(model, block, filter, verbose = False):
 
 def deconvert(dim, coord_norm):
 
-    """ Converts normalized coordinates in YOLO format to [xmin, ymin, xmax, ymax] format """
+    """ Converts normalized coordinates in YOLO format to [xmin, ymin, xmax, ymax] format. """
 
     # xmin = w_image * (xmin_norm - xmax_norm/2)
     xmin = dim[0] * (coord_norm[0] - coord_norm[2]/2)

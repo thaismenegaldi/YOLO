@@ -645,6 +645,9 @@ def filter_representation(model, data, img_size, pool_type = 'max', subset = 'tr
     out_i = list()
     yolo_out_i = list()
 
+    # Image sizes
+    img_sizes = list()
+
     # Initializing the model
     device = torch_utils.select_device()
     model = model.to(device)
@@ -663,8 +666,11 @@ def filter_representation(model, data, img_size, pool_type = 'max', subset = 'tr
         # Image pre-processing
         img0, _, _ = load_image(dataset, i)
         img = letterbox(img0, new_shape=img_size)[0]
-
         x = torch.from_numpy(img)
+
+        # Append image size to list
+        img_sizes.append(img.shape[:2])
+        
         # Normalization
         x = x.to(device).float() / 255.0
         x = x.float() / 255.0
@@ -728,9 +734,9 @@ def filter_representation(model, data, img_size, pool_type = 'max', subset = 'tr
         yolo_out_i.clear()
         del x, img0, img
 
-    return inputs, dataset.labels
+    return inputs, dataset.labels, img_sizes
 
-def class_label_matrix(labels, num_classes = 2):
+def class_label_matrix(labels, img_sizes, num_classes):
 
     """ Computes the class label matrix of the training data. """
 
@@ -739,6 +745,8 @@ def class_label_matrix(labels, num_classes = 2):
 
     # Modeling the object detection problem as a binary classification problem (none, detection)
     if num_classes == 2:
+
+        print('Modeling as a binary problem')
 
         for sample in range(len(labels)):
             # None
@@ -751,21 +759,54 @@ def class_label_matrix(labels, num_classes = 2):
     # Modeling the object detection problem as a multiclass classification problem (none, fire, smoke)
     if num_classes > 2:
 
+        print('Modeling as a multiclass problem')
+
+        # Pixels area per image
+        area = {'fire': 0, 'smoke': 0}
+
         for sample in range(len(labels)):
             # None
             if len(labels[sample]) == 0:
                 Y.append(0)
+
             # Detection
             else:
-                counter = collections.Counter(labels[sample][:,0])
-                # Number of smokes is greater than the number of fires
-                if counter[0] > counter[1]:
+                # For each bounding box
+                for label in range(labels[sample].shape[0]):
+                    
+                    # Class identifier
+                    class_id = labels[sample][label][0]
+
+                    # Normalized coordinates
+                    xmin = labels[sample][label][1]
+                    ymin = labels[sample][label][2]
+                    xmax = labels[sample][label][3]
+                    ymax = labels[sample][label][4]
+
+                    # Image dimensions
+                    height = img_sizes[sample][0]
+                    width = img_sizes[sample][1]
+
+                    # Coordinates without normalization                 
+                    xmin, ymin, xmax, ymax = deconvert((width, height), (xmin, ymin, xmax, ymax))
+
+                    # Sum the pixel areas according to the class
+                    if class_id == 0:
+                        area['smoke'] += (xmax - xmin) * (ymax - ymin)
+                    else:
+                        area['fire'] += (xmax - xmin) * (ymax - ymin)
+
+                # If the smoke pixel area is larger than the fire pixel area
+                if area['smoke'] > area['fire']:
                     Y.append(1)
-                # Number of fires is greater (or equal) than the number of smokes
+                # Otherwise
                 else:
                     Y.append(2)
+
+                # Resetting counters for the next image
+                area = area.fromkeys(area, 0)
         
-        # Converts a class vector (integers) to binary class matrix
+        # Convert a class vector (integers) to binary class matrix
         Y = np.eye(num_classes, dtype = 'int')[Y]
     
     # List to numpy array
