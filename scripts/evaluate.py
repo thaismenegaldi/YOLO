@@ -18,7 +18,7 @@ def evaluate_model(when = 'after'):
     # Closing file
     f.close()
 
-def change_imgsize(imgsize):
+def change_hyperparams(imgsize):
 
     # Opens the file in read-only mode
     f = open('dfire.cfg', 'r')
@@ -30,8 +30,12 @@ def change_imgsize(imgsize):
     for i, line in enumerate(lines):
         if 'width' in line:
             lines[i] = 'width=' + str(imgsize) + '\n'
-        if 'height' in line:
+        elif 'height' in line:
             lines[i] = 'height=' + str(imgsize) + '\n'
+        elif '^batch =' in line:
+            lines[i] = 'batch = 1\n'
+        elif '^subdivisions' in line:
+            lines[i] = 'subdivisions = 1\n'
 
     # Opens the file in write-only mode
     f = open('dfire.cfg', 'w')
@@ -179,8 +183,8 @@ if __name__ == '__main__':
         subdir = str(folder) + os.sep
         os.chdir(subdir)
 
-        # Change image size
-        change_imgsize(opt.imgsize)
+        # Change image size, batch size and subdivisions
+        change_hyperparams(opt.imgsize)
 
         if opt.when.lower() == 'after':
 
