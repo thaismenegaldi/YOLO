@@ -650,6 +650,7 @@ def filter_representation(model, data, img_size, pool_type = 'max', subset = 'tr
 
     # Initializing the model
     device = torch_utils.select_device()
+    print('Device:', device)
     model = model.to(device)
 
     # Prunable block indexes
