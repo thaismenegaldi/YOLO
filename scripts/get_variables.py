@@ -1,7 +1,7 @@
 import argparse
 from models import *
 from utils.build import *
-from utils.utils import *
+from pruning.utils import *
 from pruning.prune import *
 
 if __name__ == '__main__':
