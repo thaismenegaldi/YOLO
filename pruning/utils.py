@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from pruning.prune import *
 
 def sparsity(model, describe = False):
 
