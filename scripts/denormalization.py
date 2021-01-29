@@ -2,7 +2,7 @@ import os
 import cv2
 import argparse
 
-def deconvert(dim, coord_norm):
+def yolo2bbox(dim, coord_norm):
 
     """ Converts normalized coordinates in YOLO format to [xmin, ymin, xmax, ymax] format. """
 
@@ -58,7 +58,7 @@ for subdir, dirs, files in os.walk(opt.input):
                 xmax = float(line.split(' ')[3])
                 ymax = float(line.split(' ')[4])
 
-                xmin, ymin, xmax, ymax = deconvert((width, height), (xmin, ymin, xmax, ymax))
+                xmin, ymin, xmax, ymax = yolo2bbox((width, height), (xmin, ymin, xmax, ymax))
 
                 output.write('%d %d %d %d %s\n' % (int(xmin), int(ymin), int(xmax), int(ymax), class_name))
 
