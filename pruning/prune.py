@@ -16,6 +16,7 @@ def to_prune(model):
     """ Returns the indexes of the convolutional blocks that can be pruned."""
 
     blocks = list()
+    ignore = list()
 
     for i in range(len(model.module_list)):
         try:
@@ -26,7 +27,11 @@ def to_prune(model):
                 if str(block).split('(')[0] == 'Conv2d' and i+1 not in model.yolo_layers and next_block == 'Sequential': #and len(model.module_list[i+1]) > 1:
                     blocks.append(i)
         except:
-            pass
+            if str(model.module_list[i]).split('(')[0] == 'FeatureConcat' or str(model.module_list[i]).split('(')[0] == 'WeightedFeatureFusion':
+                for layer in model.module_list[i].layers:
+                    ignore.append(i+layer)
+
+    blocks = list(sorted(set(blocks).difference(set(ignore))))
 
     return blocks
 
