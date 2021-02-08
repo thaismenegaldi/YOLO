@@ -129,6 +129,9 @@ def single_pruning(model, block, filter, version = 3):
     # Log file
     log = open('pruned_filters.txt', 'a+')
 
+    # Blocks to prune
+    blocks = to_prune(model)
+
     # Get information from the current convolutional layer
     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
 
@@ -209,7 +212,7 @@ def single_pruning(model, block, filter, version = 3):
         model = replace_layer(model, block+1, pruned_conv_layer)
 
     # If the previous block is a FeatureConcat (constraint for YOLOv4 architecture)
-    if str(model.module_list[block-1]).split('(')[0] == 'FeatureConcat':
+    if str(model.module_list[block-1]).split('(')[0] == 'FeatureConcat' and block-2 in blocks:
 
         # Get information from the next convolutional layer
         hyperparameters, parameters = get_layer_info(model.module_list[block][0])
