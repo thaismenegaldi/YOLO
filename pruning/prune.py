@@ -261,6 +261,10 @@ def single_pruning(model, block, filter, version = 3):
         # If the third consecutive block after YOLO layer is a FeatureConcat (constraint for YOLOv4 architecture)
         if str(model.module_list[block+7]).split('(')[0] == 'Sequential':
 
+            print('Block:', block) 
+            print((model.module_list[block]).split('(')[0])
+            print((model.module_list[block+7]).split('(')[0])
+
             # Get information from the next convolutional layer
             hyperparameters, parameters = get_layer_info(model.module_list[block+7][0])
 
