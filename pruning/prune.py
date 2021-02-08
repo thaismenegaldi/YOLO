@@ -122,7 +122,7 @@ def remove_filter(parameters, filter, name = 'weight', channels = 'output'):
 
     return parameters
 
-def single_pruning(model, block, filter):
+def single_pruning(model, block, filter, version = 3):
 
     """ Pruning a single convolutional filter of the model. """
 
@@ -257,6 +257,31 @@ def single_pruning(model, block, filter):
 
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+5, pruned_conv_layer)
+
+        # If the third consecutive block after YOLO layer is a FeatureConcat (constraint for YOLOv4 architecture)
+        if str(model.module_list[block+7]).split('(')[0] == 'Sequential':
+
+            # Get information from the next convolutional layer
+            hyperparameters, parameters = get_layer_info(model.module_list[block+7][0])
+
+            # Creates a replica of the convolutional layer to perform pruning
+            pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+                                                out_channels = hyperparameters['out_channels'],
+                                                kernel_size = hyperparameters['kernel_size'],
+                                                stride = hyperparameters['stride'],
+                                                padding = hyperparameters['padding'],
+                                                bias = False if parameters['bias'] is None else True                                  
+                                                )
+            
+            # Removes convolutional filter
+            parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+            # Updates pruned convolutional layer
+            pruned_conv_layer.weight.data = parameters['weight'].data
+            pruned_conv_layer.weight.requires_grad = True
+
+            # Exchanges the original layer with the pruned layer
+            model = replace_layer(model, block+7, pruned_conv_layer)
 
     # Removes convolutional filter from attribute related to .cfg file
     model.module_defs[block]['filters'] -= 1
@@ -568,7 +593,7 @@ def select_filters(model, rate, importances, mode = 'layer', ascending = True):
     # Returns tuple with less important filters
     return list(selected.to_records(index=False))
 
-def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
+def ranked_pruning(model, rate, rank, X = None, Y = None, c = None, version = 3):
 
     """ Criteria-based pruning of convolutional filters in the model. """
   
@@ -594,13 +619,13 @@ def ranked_pruning(model, rate, rank, X = None, Y = None, c = None):
 
     for i in range(len(selected)):
         block, filter, importance = selected[i]
-        model = single_pruning(model, block, filter)
+        model = single_pruning(model, block, filter, version = 3)
 
     print('%d filters were pruned.' % (len(selected)))
 
     return model
 
-def random_pruning(model, rate, seed = 42):
+def random_pruning(model, rate, seed = 42, version = 3):
 
     """ Random pruning of convolutional filters in the model. """
 
@@ -624,7 +649,7 @@ def random_pruning(model, rate, seed = 42):
         filters = -np.sort(-np.array(random.sample(range(model.module_list[blocks[i]][0].out_channels), n_filters[i])))
 
         for filter in filters:
-            model = single_pruning(model, blocks[i], filter)
+            model = single_pruning(model, blocks[i], filter, version = 3)
 
     print('%d filters were pruned.' % (sum(n_filters)))
 
