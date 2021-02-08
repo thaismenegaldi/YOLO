@@ -208,11 +208,11 @@ def single_pruning(model, block, filter, version = 3):
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+1, pruned_conv_layer)
 
-    # If the second consecutive block is a FeatureConcat (constraint for YOLOv4 architecture)
-    if str(model.module_list[block+2]).split('(')[0] == 'FeatureConcat' and str(model.module_list[block+3]).split('(')[0] == 'Sequential':
+    # If the previous block is a FeatureConcat (constraint for YOLOv4 architecture)
+    if str(model.module_list[block-1]).split('(')[0] == 'FeatureConcat':
 
         # Get information from the next convolutional layer
-        hyperparameters, parameters = get_layer_info(model.module_list[block+3][0])
+        hyperparameters, parameters = get_layer_info(model.module_list[block][0])
 
         # Creates a replica of the convolutional layer to perform pruning
         pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
@@ -231,7 +231,7 @@ def single_pruning(model, block, filter, version = 3):
         pruned_conv_layer.weight.requires_grad = True
 
         # Exchanges the original layer with the pruned layer
-        model = replace_layer(model, block+3, pruned_conv_layer)    
+        model = replace_layer(model, block, pruned_conv_layer)    
 
     # After YOLO Layer
     if block in [layer-3 for layer in model.yolo_layers[:-1]]:
@@ -257,35 +257,6 @@ def single_pruning(model, block, filter, version = 3):
 
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+5, pruned_conv_layer)
-
-        # If the third consecutive block after YOLO layer is a FeatureConcat (constraint for YOLOv4 architecture)
-        if str(model.module_list[block+7]).split('(')[0] == 'Sequential':
-
-            print('Block:', block) 
-            print(str(model.module_list[block]).split('(')[0])
-            print(str(model.module_list[block+7]).split('(')[0])
-
-            # Get information from the next convolutional layer
-            hyperparameters, parameters = get_layer_info(model.module_list[block+7][0])
-
-            # Creates a replica of the convolutional layer to perform pruning
-            pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
-                                                out_channels = hyperparameters['out_channels'],
-                                                kernel_size = hyperparameters['kernel_size'],
-                                                stride = hyperparameters['stride'],
-                                                padding = hyperparameters['padding'],
-                                                bias = False if parameters['bias'] is None else True                                  
-                                                )
-            
-            # Removes convolutional filter
-            parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
-
-            # Updates pruned convolutional layer
-            pruned_conv_layer.weight.data = parameters['weight'].data
-            pruned_conv_layer.weight.requires_grad = True
-
-            # Exchanges the original layer with the pruned layer
-            model = replace_layer(model, block+7, pruned_conv_layer)
 
     # Removes convolutional filter from attribute related to .cfg file
     model.module_defs[block]['filters'] -= 1
