@@ -27,9 +27,10 @@ def to_prune(model):
                 if str(block).split('(')[0] == 'Conv2d' and i+1 not in model.yolo_layers and next_block == 'Sequential': #and len(model.module_list[i+1]) > 1:
                     blocks.append(i)
         except:
-            if str(model.module_list[i]).split('(')[0] == 'FeatureConcat' or str(model.module_list[i]).split('(')[0] == 'WeightedFeatureFusion':
-                for layer in model.module_list[i].layers:
-                    ignore.append(i+layer)
+            # if str(model.module_list[i]).split('(')[0] == 'FeatureConcat' or str(model.module_list[i]).split('(')[0] == 'WeightedFeatureFusion':
+            #     for layer in model.module_list[i].layers:
+            #         ignore.append(i+layer)
+            pass
 
     blocks = list(sorted(set(blocks).difference(set(ignore))))
 
