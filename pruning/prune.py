@@ -32,7 +32,7 @@ def to_prune(model):
             #         ignore.append(i+layer)
             pass
 
-    blocks = list(sorted(set(blocks).difference(set(ignore))))
+    # blocks = list(sorted(set(blocks).difference(set(ignore))))
 
     return blocks
 
@@ -218,29 +218,29 @@ def single_pruning(model, block, filter, version = 3):
         model = replace_layer(model, block+1, pruned_conv_layer)
 
     # If the previous block is a FeatureConcat (constraint for YOLOv4 architecture)
-    if str(model.module_list[block-1]).split('(')[0] == 'FeatureConcat' and block-2 in blocks:
+    # if str(model.module_list[block-1]).split('(')[0] == 'FeatureConcat' and block-2 in blocks:
 
-        # Get information from the next convolutional layer
-        hyperparameters, parameters = get_layer_info(model.module_list[block][0])
+    #     # Get information from the next convolutional layer
+    #     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
 
-        # Creates a replica of the convolutional layer to perform pruning
-        pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
-                                            out_channels = hyperparameters['out_channels'],
-                                            kernel_size = hyperparameters['kernel_size'],
-                                            stride = hyperparameters['stride'],
-                                            padding = hyperparameters['padding'],
-                                            bias = False if parameters['bias'] is None else True                                  
-                                            ) 
+    #     # Creates a replica of the convolutional layer to perform pruning
+    #     pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+    #                                         out_channels = hyperparameters['out_channels'],
+    #                                         kernel_size = hyperparameters['kernel_size'],
+    #                                         stride = hyperparameters['stride'],
+    #                                         padding = hyperparameters['padding'],
+    #                                         bias = False if parameters['bias'] is None else True                                  
+    #                                         ) 
 
-        # Removes convolutional filter
-        parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+    #     # Removes convolutional filter
+    #     parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
 
-        # Updates pruned convolutional layer
-        pruned_conv_layer.weight.data = parameters['weight'].data
-        pruned_conv_layer.weight.requires_grad = True
+    #     # Updates pruned convolutional layer
+    #     pruned_conv_layer.weight.data = parameters['weight'].data
+    #     pruned_conv_layer.weight.requires_grad = True
 
-        # Exchanges the original layer with the pruned layer
-        model = replace_layer(model, block, pruned_conv_layer)    
+    #     # Exchanges the original layer with the pruned layer
+    #     model = replace_layer(model, block, pruned_conv_layer)    
 
     # After YOLO Layer
     if block in [layer-3 for layer in model.yolo_layers[:-1]]:
