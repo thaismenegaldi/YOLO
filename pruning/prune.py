@@ -255,8 +255,14 @@ def single_pruning_v4(model, block, filter):
     # Name of the current layer
     current_layer = str(model.module_list[block][0]).split('(')[0]
     # Name of the two next layers
-    next_layer1 = str(model.module_list[block+1][0]).split('(')[0]
-    next_layer2 = str(model.module_list[block+2][0]).split('(')[0]
+    if len(model.module_list[block+1]) > 1:
+        next_layer1 = str(model.module_list[block+1][0]).split('(')[0]
+    else:
+        next_layer1 = str(model.module_list[block+1]).split('(')[0]
+    if len(model.module_list[block+2]) > 1:
+        next_layer2 = str(model.module_list[block+2][0]).split('(')[0]
+    else:
+        next_layer2 = str(model.module_list[block+2]).split('(')[0]
 
     # Get information from the current convolutional layer
     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
