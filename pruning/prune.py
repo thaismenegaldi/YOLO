@@ -319,7 +319,7 @@ def single_pruning_v4(model, block, filter):
         model = replace_layer(model, block, pruned_batchnorm_layer)
 
     # If the next block is also sequential
-    if next_layer1 == 'Sequential':
+    if next_layer1 == 'Conv2d':
 
         # Get information from the next convolutional layer
         hyperparameters, parameters = get_layer_info(model.module_list[block+1][0])
@@ -343,7 +343,7 @@ def single_pruning_v4(model, block, filter):
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+1, pruned_conv_layer)
 
-    elif next_layer1 == 'WeightedFeatureFusion' and next_layer2 == 'Sequential':
+    elif next_layer1 == 'WeightedFeatureFusion' and next_layer2 == 'Conv2d':
 
         # Get information from the i+2th convolutional layer
         hyperparameters, parameters = get_layer_info(model.module_list[block+2][0])
