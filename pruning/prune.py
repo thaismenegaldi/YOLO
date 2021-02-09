@@ -254,6 +254,15 @@ def single_pruning_v4(model, block, filter):
 
     # Name of the current layer
     current_layer = str(model.module_list[block][0]).split('(')[0]
+    # Name of previous layer
+    try:
+        try:
+            previous_layer = str(model.module_list[block-1][0]).split('(')[0]
+        except:
+            previous_layer = str(model.module_list[block-1]).split('(')[0]
+    # First layer has no previous layer
+    except:
+        previous_layer = ''
     # Name of the two next layers
     try:
         next_layer1 = str(model.module_list[block+1][0]).split('(')[0]
@@ -366,6 +375,30 @@ def single_pruning_v4(model, block, filter):
 
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+2, pruned_conv_layer)
+
+    if previous_layer == 'FeatureConcat':
+
+        # Get information from the current convolutional layer
+        hyperparameters, parameters = get_layer_info(model.module_list[block][0])
+
+        # Creates a replica of the convolutional layer to perform pruning
+        pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+                                            out_channels = hyperparameters['out_channels'],
+                                            kernel_size = hyperparameters['kernel_size'],
+                                            stride = hyperparameters['stride'],
+                                            padding = hyperparameters['padding'],
+                                            bias = False if parameters['bias'] is None else True                                  
+                                            )
+        
+        # Removes convolutional filter
+        parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+        # Updates pruned convolutional layer
+        pruned_conv_layer.weight.data = parameters['weight'].data
+        pruned_conv_layer.weight.requires_grad = True
+
+        # Exchanges the original layer with the pruned layer
+        model = replace_layer(model, block, pruned_conv_layer)
 
     # After YOLO Layer
     if block in [layer-3 for layer in model.yolo_layers[:-1]]:
