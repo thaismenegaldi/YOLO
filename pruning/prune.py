@@ -11,6 +11,26 @@ from utils.datasets import *
 from sklearn.cross_decomposition import CCA
 from sklearn.cross_decomposition import PLSRegression
 
+# def to_prune(model):
+
+#     """ Returns the indexes of the convolutional blocks that can be pruned."""
+
+#     blocks = list()
+
+#     for i in range(len(model.module_list)):
+#         try:
+#             for j in range(len(model.module_list[i])):
+#                 block = str(model.module_list[i][j]).split('(')[0]
+#                 next_block = str(model.module_list[i+1]).split('(')[0]
+#                 previous_block = str()
+#                 # It must be a sequential block containing "Conv2d + BatchNorm2d + LeakyReLU" and that does not precede a YOLO layer or WeightedFeatureFusion layer
+#                 if block == 'Conv2d' and next_block == 'Sequential' and i+1 not in model.yolo_layers:
+#                     blocks.append(i)
+#         except:
+#             pass
+
+#     return blocks
+
 def to_prune(model):
 
     """ Returns the indexes of the convolutional blocks that can be pruned."""
@@ -24,7 +44,7 @@ def to_prune(model):
                 next_block = str(model.module_list[i+1]).split('(')[0]
                 previous_block = str()
                 # It must be a sequential block containing "Conv2d + BatchNorm2d + LeakyReLU" and that does not precede a YOLO layer
-                if block == 'Conv2d' and next_block == 'Sequential' and i+1 not in model.yolo_layers:
+                if block == 'Conv2d' and i+1 not in model.yolo_layers:
                     blocks.append(i)
         except:
             pass
@@ -209,8 +229,33 @@ def single_pruning(model, block, filter):
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+1, pruned_conv_layer)
 
+    # If the next block is WeightedFeatureFusion
+    elif str(model.module_list[block+1]).split('(')[0] == 'WeightedFeatureFusion':
+
+        # Get information from the convolutional layer that comes immediately after the WeightedFeatureFusion
+        hyperparameters, parameters = get_layer_info(model.module_list[block+2][0])
+
+        # Creates a replica of the convolutional layer to perform pruning
+        pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+                                            out_channels = hyperparameters['out_channels'],
+                                            kernel_size = hyperparameters['kernel_size'],
+                                            stride = hyperparameters['stride'],
+                                            padding = hyperparameters['padding'],
+                                            bias = False if parameters['bias'] is None else True                                  
+                                            )
+        
+        # Removes convolutional filter
+        parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+        # Updates pruned convolutional layer
+        pruned_conv_layer.weight.data = parameters['weight'].data
+        pruned_conv_layer.weight.requires_grad = True
+
+        # Exchanges the original layer with the pruned layer
+        model = replace_layer(model, block+2, pruned_conv_layer)
+
     # After YOLO Layer
-    if block in [layer-3 for layer in model.yolo_layers[:-1]]:
+    elif block in [layer-3 for layer in model.yolo_layers[:-1]]:
 
         # Get information from the next convolutional layer
         hyperparameters, parameters = get_layer_info(model.module_list[block+5][0])
@@ -245,6 +290,129 @@ def single_pruning(model, block, filter):
     log.write('Convolutional filter %d pruned from block %d\n' % (filter, block))
 
     return model
+
+# def single_pruning(model, block, filter):
+
+#     """ Pruning a single convolutional filter of the YOLOv3 model. """
+
+#     # Log file
+#     log = open('pruned_filters.txt', 'a+')
+
+#     # Get information from the current convolutional layer
+#     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
+
+#     # Creates a replica of the convolutional layer to perform pruning
+#     pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels'],
+#                                         out_channels = hyperparameters['out_channels']-1,
+#                                         kernel_size = hyperparameters['kernel_size'],
+#                                         stride = hyperparameters['stride'],
+#                                         padding = hyperparameters['padding'],
+#                                         bias = False if parameters['bias'] is None else True                                  
+#                                         )
+    
+#     # Removes convolutional filter
+#     parameters = remove_filter(parameters, filter, name = 'weight', channels = 'output')
+
+#     # Updates pruned convolutional layer
+#     pruned_conv_layer.weight.data = parameters['weight'].data
+#     pruned_conv_layer.weight.requires_grad = True
+
+#     if parameters['bias'] is not None:
+#         parameters = remove_filter(parameters, filter, name = 'bias', channels = 'output')
+#         pruned_conv_layer.bias.data = parameters['bias'].data
+#         pruned_conv_layer.bias.requires_grad = True
+
+#     # Exchanges the original layer with the pruned layer
+#     model = replace_layer(model, block, pruned_conv_layer)
+
+#     # If the block contains more than one layer, convolutional layer is the first
+#     if len(model.module_list[block]) > 1:
+
+#         # Get information from the current batch normalization layer
+#         hyperparameters, parameters = get_layer_info(model.module_list[block][1])
+
+#         # Creates a replica of the batch normalization layer to perform pruning
+#         pruned_batchnorm_layer = torch.nn.BatchNorm2d(num_features = hyperparameters['num_features']-1,
+#                                                       eps = hyperparameters['eps'],
+#                                                       momentum = hyperparameters['momentum'],
+#                                                       affine = hyperparameters['affine'],
+#                                                       track_running_stats = hyperparameters['track_running_stats']
+#                                                       )
+        
+#         # Removes filter
+#         parameters = remove_filter(parameters, filter, name = 'weight', channels = 'output')
+#         parameters = remove_filter(parameters, filter, name = 'bias', channels = 'output') 
+
+#         pruned_batchnorm_layer.weight.data = parameters['weight'].data
+#         pruned_batchnorm_layer.weight.requires_grad = True
+
+#         pruned_batchnorm_layer.bias.data = parameters['bias'].data
+#         pruned_batchnorm_layer.bias.requires_grad = True
+
+#         # Exchanges the original layer with the pruned layer
+#         model = replace_layer(model, block, pruned_batchnorm_layer)
+
+#     # If the next block is also sequential
+#     if str(model.module_list[block+1]).split('(')[0] == 'Sequential':
+
+#         # Get information from the next convolutional layer
+#         hyperparameters, parameters = get_layer_info(model.module_list[block+1][0])
+
+#         # Creates a replica of the convolutional layer to perform pruning
+#         pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+#                                             out_channels = hyperparameters['out_channels'],
+#                                             kernel_size = hyperparameters['kernel_size'],
+#                                             stride = hyperparameters['stride'],
+#                                             padding = hyperparameters['padding'],
+#                                             bias = False if parameters['bias'] is None else True                                  
+#                                             )
+        
+#         # Removes convolutional filter
+#         parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+#         # Updates pruned convolutional layer
+#         pruned_conv_layer.weight.data = parameters['weight'].data
+#         pruned_conv_layer.weight.requires_grad = True
+
+#         # Exchanges the original layer with the pruned layer
+#         model = replace_layer(model, block+1, pruned_conv_layer)
+
+#     # After YOLO Layer
+#     if block in [layer-3 for layer in model.yolo_layers[:-1]]:
+
+#         # Get information from the next convolutional layer
+#         hyperparameters, parameters = get_layer_info(model.module_list[block+5][0])
+
+#         # Creates a replica of the convolutional layer to perform pruning
+#         pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+#                                             out_channels = hyperparameters['out_channels'],
+#                                             kernel_size = hyperparameters['kernel_size'],
+#                                             stride = hyperparameters['stride'],
+#                                             padding = hyperparameters['padding'],
+#                                             bias = False if parameters['bias'] is None else True                                  
+#                                             )
+        
+#         # Removes convolutional filter
+#         parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+#         # Updates pruned convolutional layer
+#         pruned_conv_layer.weight.data = parameters['weight'].data
+#         pruned_conv_layer.weight.requires_grad = True
+
+#         # Exchanges the original layer with the pruned layer
+#         model = replace_layer(model, block+5, pruned_conv_layer)
+
+
+#     # Removes convolutional filter from attribute related to .cfg file
+#     model.module_defs[block]['filters'] -= 1
+
+#     # Deletes auxiliary layers
+#     del pruned_conv_layer
+#     del pruned_batchnorm_layer
+
+#     log.write('Convolutional filter %d pruned from block %d\n' % (filter, block))
+
+#     return model
 
 def norm(model, order = 'L2'):
 
