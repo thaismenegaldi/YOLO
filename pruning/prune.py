@@ -229,6 +229,37 @@ def single_pruning(model, block, filter):
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+1, pruned_conv_layer)
 
+        # If the current block has a block that precedes it
+        try:
+            # If the previous block is FeatureConcat
+            if str(model.module_list[block-1]).split('(')[0] == 'FeatureConcat':
+                
+                # Get information from the previous convolutional layer
+                hyperparameters, parameters = get_layer_info(model.module_list[block-1][0])
+
+                # Creates a replica of the convolutional layer to perform pruning
+                pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+                                                    out_channels = hyperparameters['out_channels'],
+                                                    kernel_size = hyperparameters['kernel_size'],
+                                                    stride = hyperparameters['stride'],
+                                                    padding = hyperparameters['padding'],
+                                                    bias = False if parameters['bias'] is None else True                                  
+                                                    )
+                
+                # Removes convolutional filter
+                parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+                # Updates pruned convolutional layer
+                pruned_conv_layer.weight.data = parameters['weight'].data
+                pruned_conv_layer.weight.requires_grad = True
+
+                # Exchanges the original layer with the pruned layer
+                model = replace_layer(model, block-1, pruned_conv_layer)
+
+        # If the block has no block before it, it is the first block in the model
+        except:
+            pass
+
     # If the next block is WeightedFeatureFusion
     elif str(model.module_list[block+1]).split('(')[0] == 'WeightedFeatureFusion':
 
