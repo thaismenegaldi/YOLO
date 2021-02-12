@@ -255,7 +255,7 @@ def single_pruning(model, block, filter):
         model = replace_layer(model, block+2, pruned_conv_layer)
 
     # After YOLO Layer
-    elif block in [layer-3 for layer in model.yolo_layers[:-1]]:
+    if block in [layer-3 for layer in model.yolo_layers[:-1]]:
 
         # Get information from the next convolutional layer
         hyperparameters, parameters = get_layer_info(model.module_list[block+5][0])
