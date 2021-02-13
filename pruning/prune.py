@@ -321,7 +321,7 @@ def single_pruning(model, block, filter):
     if block in routes.keys():
 
         # Output layer index of the FeatureConcat
-        dest = set(routes[block])
+        dest = list(set(routes[block]))[0]
 
         # Get the index(es) of the filter(s)
         filters = get_filter_index(model, block, filter, routes)
