@@ -55,7 +55,7 @@ def find_routes(model):
 
     """ Find skip connections (routes) in the model. """
 
-    routes = dict()
+    routes = collections.defaultdict(list)
 
     for i in range(len(model.module_list)):
     
@@ -66,18 +66,19 @@ def find_routes(model):
             layers = model.module_list[i].layers
     
             for layer in layers:
-    
+  
                 # Relative or true index
                 idx = i + layer if layer < 0 else layer
     
                 if str(model.module_list[idx]).split('(')[0] == 'Sequential':
                     # i+1 because it is the convolutional layer after the FeatureConcat
-                    routes[idx] = i+1
+                    if str(model.module_list[i+1]).split('(')[0] == 'Sequential':
+                        routes[idx].append(i+1)
                 else:
                     # Closest previous convolutional layer
                     for k in range(idx, 0, -1):
-                        if str(model.module_list[k]).split('(')[0] == 'Sequential':
-                            routes[k] = i+1
+                        if str(model.module_list[k]).split('(')[0] == 'Sequential' and str(model.module_list[i+1]).split('(')[0] == 'Sequential':
+                            routes[k].append(i+1)
                             break
 
     return routes
@@ -86,23 +87,29 @@ def get_filter_index(model, block, filter, routes):
 
     """ Get relative filter index of the convolutional layer that is in FeatureConcat with some other layer(s). """
 
-    links = dict()
+    filters = list()
     n_filters = list()
+    links = collections.defaultdict(list)
 
     # Key: index of the layer that is the result of the concatenation, value: indexes of the layers that were concatenated
-    for n in set(routes.values()):
-        links[n] = [k for k in routes.keys() if routes[k] == n]
+    for key, values in routes.items():
+        for value in values:
+            links[value].append(key)
 
     # Get number of filters in each layer that concatenate
-    for index, value in enumerate(links[routes[block]]):
+    for index, value in enumerate(links[list(set(routes[block]))[0]]):
         n_filters.append(model.module_list[value][0].out_channels)
         if value == block:
             idx = index
 
     # Get index of the filter that will be removed from the layer resulting from the concatenation
-    filter = sum(n_filters[:(idx)])+filter
+    if len(links[list(set(routes[block]))[0]]) != len(set(links[list(set(routes[block]))[0]])):
+        for i in range(len(links[list(set(routes[block]))[0]])):
+            filters.append(sum(n_filters[:(i)])+filter)
+    else:
+        filters.append(sum(n_filters[:(idx)])+filter)
 
-    return filter
+    return filters
 
 
 def prunable_filters(model):
@@ -316,29 +323,33 @@ def single_pruning(model, block, filter):
         # Output layer index of the FeatureConcat
         dest = routes[block]
 
-        # Get information from the convolutional layer that is output of the FeatureConcat
-        hyperparameters, parameters = get_layer_info(model.module_list[dest][0])
+        # Get the index(es) of the filter(s)
+        filters = get_filter_index(model, block, filter, routes)
 
-        # Creates a replica of the convolutional layer to perform pruning
-        pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
-                                            out_channels = hyperparameters['out_channels'],
-                                            kernel_size = hyperparameters['kernel_size'],
-                                            stride = hyperparameters['stride'],
-                                            padding = hyperparameters['padding'],
-                                            bias = False if parameters['bias'] is None else True                                  
-                                            )
-        
-        # Get index
-        filter = get_filter_index(model, block, filter, routes)
-        # Removes convolutional filter
-        parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+        for filter in filters:
 
-        # Updates pruned convolutional layer
-        pruned_conv_layer.weight.data = parameters['weight'].data
-        pruned_conv_layer.weight.requires_grad = True
+            # Get information from the convolutional layer that is output of the FeatureConcat
+            hyperparameters, parameters = get_layer_info(model.module_list[dest][0])
 
-        # Exchanges the original layer with the pruned layer
-        model = replace_layer(model, dest, pruned_conv_layer)
+            # Creates a replica of the convolutional layer to perform pruning
+            pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
+                                                out_channels = hyperparameters['out_channels'],
+                                                kernel_size = hyperparameters['kernel_size'],
+                                                stride = hyperparameters['stride'],
+                                                padding = hyperparameters['padding'],
+                                                bias = False if parameters['bias'] is None else True                                  
+                                                )
+            
+            
+            # Removes convolutional filter
+            parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
+
+            # Updates pruned convolutional layer
+            pruned_conv_layer.weight.data = parameters['weight'].data
+            pruned_conv_layer.weight.requires_grad = True
+
+            # Exchanges the original layer with the pruned layer
+            model = replace_layer(model, dest, pruned_conv_layer)
 
     # Removes convolutional filter from attribute related to .cfg file
     model.module_defs[block]['filters'] -= 1
