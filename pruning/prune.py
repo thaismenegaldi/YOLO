@@ -83,7 +83,7 @@ def find_routes(model):
 
     return routes
 
-def get_filter_index(model, block, filter):
+def get_filter_index(model, block, filter, routes):
 
     """ Get relative filter index of the convolutional layer that is in FeatureConcat with some other layer(s). """
 
@@ -330,7 +330,7 @@ def single_pruning(model, block, filter):
                                             )
         
         # Get index
-        filter = get_filter_index(model, block, filter)
+        filter = get_filter_index(model, block, filter, routes)
         # Removes convolutional filter
         parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
 
