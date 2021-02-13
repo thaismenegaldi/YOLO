@@ -51,6 +51,61 @@ def to_prune(model):
 
     return blocks
 
+def find_routes(model):
+
+    """ Find skip connections (routes) in the model. """
+
+    routes = dict()
+
+    for i in range(len(model.module_list)):
+    
+        block = str(model.module_list[i]).split('(')[0]
+
+        if block == 'FeatureConcat':
+    
+            layers = model.module_list[i].layers
+    
+            for layer in layers:
+    
+                # Relative or true index
+                idx = i + layer if layer < 0 else layer
+    
+                if str(model.module_list[idx]).split('(')[0] == 'Sequential':
+                    # i+1 because it is the convolutional layer after the FeatureConcat
+                    routes[idx] = i+1
+                    break
+                else:
+                    # Closest previous convolutional layer
+                    for k in range(idx, 0, -1):
+                        if str(model.module_list[k]).split('(')[0] == 'Sequential':
+                            routes[k] = i+1
+                            break
+
+    return routes
+
+def get_filter_index(model, block, filter):
+
+    """ Get relative filter index of the convolutional layer that is in FeatureConcat with some other layer(s). """
+
+    links = dict()
+    n_filters = list()
+
+    # Key: index of the layer that is the result of the concatenation, value: indexes of the layers that were concatenated
+    for n in set(routes.values()):
+        links[n] = [k for k in routes.keys() if routes[k] == n]
+
+    # Get number of filters in each layer that concatenate
+    for index, value in enumerate(links[routes[block]]):
+        n_filters.append(model.module_list[value][0].out_channels)
+        if value == block:
+            idx = index
+
+    # Get index of the filter that will be removed from the layer resulting from the concatenation
+    filter = sum(n_filters[:(idx)])+filter
+
+    return filter
+
+
 def prunable_filters(model):
 
     """ Computes number of prunable filters. """
@@ -150,6 +205,9 @@ def single_pruning(model, block, filter):
     # Log file
     log = open('pruned_filters.txt', 'a+')
 
+    # Find routes in the model
+    routes = find_routes(model)
+
     # Get information from the current convolutional layer
     hyperparameters, parameters = get_layer_info(model.module_list[block][0])
 
@@ -229,37 +287,6 @@ def single_pruning(model, block, filter):
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+1, pruned_conv_layer)
 
-        # If the current block has a block that precedes it
-        try:
-            # If the previous block is FeatureConcat
-            if str(model.module_list[block-1]).split('(')[0] == 'FeatureConcat':
-                
-                # Get information from the previous convolutional layer
-                hyperparameters, parameters = get_layer_info(model.module_list[block][0])
-
-                # Creates a replica of the convolutional layer to perform pruning
-                pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
-                                                    out_channels = hyperparameters['out_channels'],
-                                                    kernel_size = hyperparameters['kernel_size'],
-                                                    stride = hyperparameters['stride'],
-                                                    padding = hyperparameters['padding'],
-                                                    bias = False if parameters['bias'] is None else True                                  
-                                                    )
-                
-                # Removes convolutional filter
-                parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
-
-                # Updates pruned convolutional layer
-                pruned_conv_layer.weight.data = parameters['weight'].data
-                pruned_conv_layer.weight.requires_grad = True
-
-                # Exchanges the original layer with the pruned layer
-                model = replace_layer(model, block, pruned_conv_layer)
-
-        # If the block has no block before it, it is the first block in the model
-        except:
-            pass
-
     # If the next block is WeightedFeatureFusion
     elif str(model.module_list[block+1]).split('(')[0] == 'WeightedFeatureFusion':
 
@@ -284,12 +311,14 @@ def single_pruning(model, block, filter):
 
         # Exchanges the original layer with the pruned layer
         model = replace_layer(model, block+2, pruned_conv_layer)
+    
+    if block in routes.keys():
 
-    # After YOLO Layer
-    if block in [layer-3 for layer in model.yolo_layers[:-1]]:
+        # Output layer index of the FeatureConcat
+        dest = routes[block]
 
-        # Get information from the next convolutional layer
-        hyperparameters, parameters = get_layer_info(model.module_list[block+5][0])
+        # Get information from the convolutional layer that is output of the FeatureConcat
+        hyperparameters, parameters = get_layer_info(model.module_list[dest][0])
 
         # Creates a replica of the convolutional layer to perform pruning
         pruned_conv_layer = torch.nn.Conv2d(in_channels = hyperparameters['in_channels']-1,
@@ -300,6 +329,8 @@ def single_pruning(model, block, filter):
                                             bias = False if parameters['bias'] is None else True                                  
                                             )
         
+        # Get index
+        filter = get_filter_index(model, block, filter)
         # Removes convolutional filter
         parameters = remove_filter(parameters, filter, name = 'weight', channels = 'input')
 
@@ -308,8 +339,7 @@ def single_pruning(model, block, filter):
         pruned_conv_layer.weight.requires_grad = True
 
         # Exchanges the original layer with the pruned layer
-        model = replace_layer(model, block+5, pruned_conv_layer)
-
+        model = replace_layer(model, dest, pruned_conv_layer)
 
     # Removes convolutional filter from attribute related to .cfg file
     model.module_defs[block]['filters'] -= 1
