@@ -1,15 +1,15 @@
 #!/bin/bash
 
-if [ "$#" -ne 2 ]
+if [ "$#" -ne 1 ]
 then
-    echo "Wrong format: use ./create_instances.sh <#iterations> <pruning_technique>"
+    echo "Wrong format: use ./move_models.sh <pruning_technique>"
     exit -1
 fi
 
 # Iterating over pruning rates
 for i in 5 10 15 20 25 30 35 40 45 50 55 60 65 70 75 80 85 90 95; do
 
-    path=$1/$2/$i
+    path=$1/$i
 
     echo $path
 

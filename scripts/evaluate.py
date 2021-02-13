@@ -158,14 +158,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--iter', type = str, help = 'Number of iterations')
     parser.add_argument('--method', type = str, help = 'Pruning method')
     parser.add_argument('--imgsize', type = int, default = 416, help = 'Image size')
     parser.add_argument('--when', type = str, default = 'after', help = 'Evaluate models after pruning or before pruning')
     opt = parser.parse_args()
 
     # Open root folder
-    root = 'Fine-Tuning/' + opt.iter + os.sep + opt.method + os.sep
+    root = 'Fine-Tuning/' + opt.method + os.sep
     os.chdir(root)
 
     # Pruned models with pruning rate from 5% to 95%

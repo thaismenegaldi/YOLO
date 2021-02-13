@@ -96,14 +96,13 @@ if __name__ == '__main__':
     parser.add_argument('--method', type = str, help = 'Pruning method')
     parser.add_argument('--imgsize', type = int, default = 416, help = 'Image size')
     parser.add_argument('--lr', type = float, default = 0.001, help = 'Learning rate')
-    parser.add_argument('--train-iter', type = int, default = 30000, help = 'Number of training iterations')
     parser.add_argument('--tuning-iter', type = int, default = 8000, help = 'Number of fine-tuning iterations')
     parser.add_argument('--layer', type = int, default = 106, help = 'Weights frozen up to this layer for fine-tuning')
     parser.add_argument('--steps', type = str, default = '6400,7200', help = 'At these iterations the learning rate will be multiplied by scales factor (0.1 by default)')
     opt = parser.parse_args()
 
     # Open root folder
-    root = 'Fine-Tuning/' + str(opt.train_iter) + os.sep + opt.method + os.sep
+    root = 'Fine-Tuning/' + opt.method + os.sep
     os.chdir(root)
 
     # Pruned models with pruning rate from 5% to 95%
