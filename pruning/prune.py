@@ -73,7 +73,6 @@ def find_routes(model):
                 if str(model.module_list[idx]).split('(')[0] == 'Sequential':
                     # i+1 because it is the convolutional layer after the FeatureConcat
                     routes[idx] = i+1
-                    break
                 else:
                     # Closest previous convolutional layer
                     for k in range(idx, 0, -1):
