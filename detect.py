@@ -140,7 +140,9 @@ def detect(save_img=False, people_thresh=10):
               if 'person' in word:
                 count_people.append(int(result_list[i-1]))
                 if int(result_list[i-1]) >= people_thresh:
-                    print('Danger!! People limit exceeded')
+                    print('\n Inference time: ', t2 - t1)
+                    print('\n Danger!! People limit exceeded.')
+                    print('Number of people: ' int(result_list[i-1]))
 
             # Stream results
             if view_img:
@@ -165,11 +167,11 @@ def detect(save_img=False, people_thresh=10):
                     vid_writer.write(im0)
 
     if save_txt or save_img:
-        print('Results saved to %s' % os.getcwd() + os.sep + out)
+        #print('Results saved to %s' % os.getcwd() + os.sep + out)
         if platform == 'darwin':  # MacOS
             os.system('open ' + save_path)
 
-    print('Done. (%.3fs)' % (time.time() - t0))
+    #print('Done. (%.3fs)' % (time.time() - t0))
     
     return count_people
 
@@ -196,7 +198,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     opt.cfg = list(glob.iglob('./**/' + opt.cfg, recursive=True))[0]  # find file
     opt.names = list(glob.iglob('./**/' + opt.names, recursive=True))[0]  # find file
-    print(opt)
+    #print(opt)
 
     with torch.no_grad():
         count_people = detect(people_thresh=opt.people_thresh)
