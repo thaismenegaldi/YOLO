@@ -1,8 +1,4 @@
-import cv2
 import argparse
-from sys import platform
-
-from tracking.tracker import *
 
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
@@ -77,14 +73,6 @@ def detect(save_img=False):
     names = load_classes(opt.names)
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
 
-    if opt.area_thresh > 0:
-        # Tracker object
-        tracker = ObjectTracker()
-        # Logging object
-        log = Log()
-
-    nframes = 0
-
     # Run inference
     t0 = time.time()
     img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
@@ -116,15 +104,14 @@ def detect(save_img=False):
         # Process detections
         for i, det in enumerate(pred):  # detections for image i
             if webcam:  # batch_size >= 1
-                p, s, im0 = path[i], '%g: ' % i, im0s[i].copy()
+                p, s, im0 = path[i], '%g: ' % i, im0s[i]
             else:
                 p, s, im0 = path, '', im0s
 
             save_path = str(Path(out) / Path(p).name)
             s += '%gx%g ' % img.shape[2:]  # print string
-            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  #  normalization gain whwh
+            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  #  normalization gain whwh
             if det is not None and len(det):
-                nframes += 1
                 # Rescale boxes from imgsz to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
@@ -133,55 +120,16 @@ def detect(save_img=False):
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += '%g %ss, ' % (n, names[int(c)])  # add to string
 
-                if opt.area_thresh > 0:
+                # Write results
+                for *xyxy, conf, cls in det:
+                    if save_txt:  # Write to file
+                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                        with open(save_path[:save_path.rfind('.')] + '.txt', 'a') as file:
+                            file.write(('%g ' * 5 + '\n') % (cls, *xywh))  # label format
 
-                    # Write results
-                    for *xyxy, conf, cls in det:
-
-                        # Saving object coordinates
-                        xmin, ymin = abs(int(xyxy[0].cpu().detach().numpy())), abs(int(xyxy[1].cpu().detach().numpy()))
-                        xmax, ymax = abs(int(xyxy[2].cpu().detach().numpy())), abs(int(xyxy[3].cpu().detach().numpy()))            
-                        log.coord_objs.append([xmin, ymin, xmax, ymax])
-
-                        # Write to file
-                        if save_txt:
-                            with open(save_path + '.txt', 'a') as file:
-                                file.write(('%g ' * 6 + '\n') % (*xyxy, cls, conf))
-
-                    # Object tracking
-                    centroids, areas = tracker.tracking(log.coord_objs)
-
-                    # Add to the logging
-                    log.centroids, log.areas = log.update(centroids, areas)
-                    
-                    # Bounding box suppression
-                    idxs = tracker.bbox_suppression(log, window = opt.window_size, thresh = opt.area_thresh)
-
-                    # Plot bounding boxes with tracking
-                    if log.first_frame == False and (save_img or view_img):
-                        tracker.plot_detections(im0, log.coord_objs, idxs, det, names, colors)
-
-                    log.first_frame = False
-
-                else:
-
-                    # Write results
-                    for *xyxy, conf, cls in det:
-
-                        if save_txt:  # Write to file
-                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                            with open(save_path[:save_path.rfind('.')] + '.txt', 'a') as file:
-                                file.write(('%g ' * 5 + '\n') % (cls, *xywh))  # label format
-
-                        if save_img or view_img:  # Add bbox to image
-                            label = '%s %.2f' % (names[int(cls)], conf)
-                            plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
-
-            if opt.area_thresh > 0:
-                # Clear list of object coordinates per image
-                log.coord_objs.clear()
-                # Save time (inference + NMS)
-                log.detection_time.append(t2-t1)
+                    if save_img or view_img:  # Add bbox to image
+                        label = '%s %.2f' % (names[int(cls)], conf)
+                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
             # Print time (inference + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))
@@ -213,15 +161,7 @@ def detect(save_img=False):
         if platform == 'darwin':  # MacOS
             os.system('open ' + save_path)
 
-    if opt.area_thresh > 0:
-
-        print('Detections:', len(log.centroids))
-        print('Changed:', tracker.changed)
-        print('Detections with area suppression:', np.sum(list(tracker.changed.values())))
-        print('Inference time per frame (avg): %.3fs' % (np.mean(log.detection_time)))
-
-    print('Frames with detections:', nframes)
-    print('Inference time (%.3fs)' % (time.time() - t0))
+    print('Done. (%.3fs)' % (time.time() - t0))
 
 
 if __name__ == '__main__':
@@ -234,8 +174,6 @@ if __name__ == '__main__':
     parser.add_argument('--img-size', type=int, default=512, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.6, help='IOU threshold for NMS')
-    parser.add_argument('--area-thresh', type=float, default=0, help='area suppression threshold')
-    parser.add_argument('--window-size', type=int, default=10, help='window size for temporal context')
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
     parser.add_argument('--half', action='store_true', help='half precision FP16 inference')
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1) or cpu')
