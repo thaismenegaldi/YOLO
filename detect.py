@@ -142,7 +142,7 @@ def detect(save_img=False, people_thresh=10):
                 if int(result_list[i-1]) >= people_thresh:
                     print('\n Inference time: ', t2 - t1)
                     print('\n Danger!! People limit exceeded.')
-                    print('Number of people: ' int(result_list[i-1]))
+                    print('Number of people: ', int(result_list[i-1]))
 
             # Stream results
             if view_img:
