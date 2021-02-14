@@ -140,9 +140,9 @@ def detect(save_img=False, people_thresh=10):
               if 'person' in word:
                 count_people.append(int(result_list[i-1]))
                 if int(result_list[i-1]) >= people_thresh:
-                    print('\n Inference time: ', t2 - t1)
-                    print('\n Danger!! People limit exceeded.')
-                    print('Number of people: ', int(result_list[i-1]))
+                    print('Inference time: ', t2 - t1)
+                    print('Danger!! People limit exceeded.')
+                    print('Detected: ', int(result_list[i-1]), '\n')
 
             # Stream results
             if view_img:
