@@ -5,7 +5,7 @@ from utils.datasets import *
 from utils.utils import *
 
 
-def detect(save_img=False):
+def detect(save_img=False, people_thresh=10):
     imgsz = (320, 192) if ONNX_EXPORT else opt.img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
     out, source, weights, half, view_img, save_txt = opt.output, opt.source, opt.weights, opt.half, opt.view_img, opt.save_txt
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http') or source.endswith('.txt')
@@ -72,7 +72,9 @@ def detect(save_img=False):
     # Get names and colors
     names = load_classes(opt.names)
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
-
+    # Number of people per frame
+    count_people = list()
+    
     # Run inference
     t0 = time.time()
     img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
@@ -132,9 +134,13 @@ def detect(save_img=False):
                             label = '%s %.2f' % (names[int(cls)], conf)
                             plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
-            # Print time (inference + NMS)
-            #print('%sDone. (%.3fs)' % (s, t2 - t1))
-            print(s)
+            # Get number of people per frame
+            result_list = s.split(' ')
+            for i, word in enumerate(result_list):
+              if 'person' in word:
+                count_people.append(int(result_list[i-1]))
+                if int(result_list[i-1]) >= people_thresh:
+                    print('Danger!! People limit exceeded')
 
             # Stream results
             if view_img:
@@ -164,6 +170,8 @@ def detect(save_img=False):
             os.system('open ' + save_path)
 
     print('Done. (%.3fs)' % (time.time() - t0))
+    
+    return count_people
 
 
 if __name__ == '__main__':
@@ -184,10 +192,11 @@ if __name__ == '__main__':
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class')
     parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
+    parser.add_argument('--people-thresh', default=10, type=int, help='People threshold')
     opt = parser.parse_args()
     opt.cfg = list(glob.iglob('./**/' + opt.cfg, recursive=True))[0]  # find file
     opt.names = list(glob.iglob('./**/' + opt.names, recursive=True))[0]  # find file
     print(opt)
 
     with torch.no_grad():
-        detect()
+        count_people = detect(opt.people_thresh)
