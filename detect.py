@@ -199,4 +199,4 @@ if __name__ == '__main__':
     print(opt)
 
     with torch.no_grad():
-        count_people = detect(opt.people_thresh)
+        count_people = detect(people_thresh=opt.people_thresh)
