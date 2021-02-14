@@ -3,6 +3,7 @@ import argparse
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
+import numpy as np
 
 
 def detect(save_img=False, people_thresh=10):
@@ -140,7 +141,7 @@ def detect(save_img=False, people_thresh=10):
               if 'person' in word:
                 count_people.append(int(result_list[i-1]))
                 if int(result_list[i-1]) >= people_thresh:
-                    print('Inference time: ', t2 - t1)
+                    print('\nInference time: ', np.round(t2 - t1, 2))
                     print('Danger!! People limit exceeded.')
                     print('Detected: ', int(result_list[i-1]), '\n')
 
