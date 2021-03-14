@@ -168,6 +168,7 @@ def detect(save_img=False, people_thresh=10):
                     print('\nInference time: ', np.round(t2 - t1, 2))
                     print('Danger!! People limit exceeded.')
                     send_email('edu.avila.vilar@gmail.com')
+                    send_email('thais.menegaldi@gmail.com')
                     print('Detected: ', int(result_list[i-1]), '\n')
 
             # Stream results
