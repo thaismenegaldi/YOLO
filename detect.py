@@ -14,7 +14,7 @@ def send_email(recipient_email_address):
     sender_email_address = 'teoriadecisao@gmail.com'
     sender_email_password = 'tctd1234'
     
-    s = smtplib.SMTP(host='smtp-mail.outlook.com', port=587)
+    s = smtplib.SMTP(host='smtp.gmail.com', port=587)
     s.starttls()
     s.login(sender_email_address, sender_email_password)
     
