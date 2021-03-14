@@ -1,3 +1,8 @@
+#for sending messages
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 import argparse
 
 from models import *  # set ONNX_EXPORT in models.py
@@ -5,6 +10,25 @@ from utils.datasets import *
 from utils.utils import *
 import numpy as np
 
+def send_email(recipient_email_address):
+    sender_email_address = 'teoriadecisao@gmail.com'
+    sender_email_password = 'tctd1234'
+    
+    s = smtplib.SMTP(host='smtp-mail.outlook.com', port=587)
+    s.starttls()
+    s.login(sender_email_address, sender_email_password)
+    
+    msg = MIMEMultipart()
+    msg['From'] = sender_email_address
+    msg['To'] = recipient_email_address
+    msg['Subject'] = 'People limit exceeded!'
+    
+    msg.attach(MIMEText('Danger!! People limit exceeded!', 'plain'))
+    
+    s.send_message(msg)
+    
+    del msg
+    
 
 def detect(save_img=False, people_thresh=10):
     imgsz = (320, 192) if ONNX_EXPORT else opt.img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
@@ -143,6 +167,7 @@ def detect(save_img=False, people_thresh=10):
                 if int(result_list[i-1]) >= people_thresh:
                     print('\nInference time: ', np.round(t2 - t1, 2))
                     print('Danger!! People limit exceeded.')
+                    send_email('edu.avila.vilar@gmail.com')
                     print('Detected: ', int(result_list[i-1]), '\n')
 
             # Stream results
