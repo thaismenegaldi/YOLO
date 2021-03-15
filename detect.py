@@ -1,5 +1,5 @@
 #for sending messages
-import smtplib, sll
+import smtplib, ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
