@@ -10,6 +10,25 @@ from utils.datasets import *
 from utils.utils import *
 import numpy as np
 
+def send_email2(recipient_email_address):
+    port = 587  # For starttls
+    smtp_server = "smtp.gmail.com"
+    sender_email = "teoriadecisao@gmail.com"
+    receiver_email = recipient_email_address
+    password = 'tctd1234'
+    message = """\
+    Subject: Hi there
+
+    People limit exceeded!"""
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP(smtp_server, port) as server:
+        server.ehlo()  # Can be omitted
+        server.starttls(context=context)
+        server.ehlo()  # Can be omitted
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message)
+
 def send_email(recipient_email_address):
     sender_email_address = 'teoriadecisao@gmail.com'
     sender_email_password = 'tctd1234'
@@ -167,8 +186,8 @@ def detect(save_img=False, people_thresh=10):
                 if int(result_list[i-1]) >= people_thresh:
                     print('\nInference time: ', np.round(t2 - t1, 2))
                     print('Danger!! People limit exceeded.')
-                    send_email('edu.avila.vilar@gmail.com')
-                    send_email('thais.menegaldi@gmail.com')
+                    send_email2('edu.avila.vilar@gmail.com')
+                    send_email2('thais.menegaldi@gmail.com')
                     print('Detected: ', int(result_list[i-1]), '\n')
 
             # Stream results
